@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# Updates Resilio Sync
+
+echoheader "Stopping Rslsync" && \
+sudo killall -9 rslsync && \
+cd /opt/sync/ && \
+echoheader "Downloading Update" && \
+sudo wget --https-only -O rslsync.tar.gz https://download-cdn.resilio.com/stable/linux-x64/resilio-sync_x64.tar.gz && \
+echoheader "Extracting Update" && \
+sudo tar -zxf rslsync.tar.gz && \
+sudo rm rslsync.tar.gz && \
+echoheader "Starting Rslsync" && \
+rslsync --config /opt/sync/sync.conf
