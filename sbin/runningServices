@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# Lists all running services in alphabetical order
+
+SERVICES=`service --status-all 2>&1 | grep -F " [ + ]  " | awk '{ print $4 }'`
+
+declare -a FINALSERVICES
+
+for s in $SERVICES;
+do
+  FINALSERVICES=("${FINALSERVICES[@]}" $s)
+done
+
+echo "$(printf '%s\n' "${FINALSERVICES[@]}"|sort)"
