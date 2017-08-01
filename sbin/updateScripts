@@ -2,7 +2,7 @@
 
 # Updates installed scripts from public repository.
 
-SCRIPTS_GIT_DIR=~/scripts/
+SCRIPTS_GIT_DIR=~/UbuntuScriptsGit/
 SCRIPTS_DIR=/usr/local/sbin/
 GIT_REPO=https://github.com/aensley/UbuntuScripts.git
 
