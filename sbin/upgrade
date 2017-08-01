@@ -15,6 +15,11 @@ if commandExists update-grub ; then
   sudo update-grub
 fi
 
+if commandExists updateScripts ; then
+  echoheader "Updating Scripts"
+  updateScripts
+fi
+
 if commandExists npm ; then
   echoheader "Updating NPM Packages"
   cd /usr/lib/node_modules && sudo npm update -g
