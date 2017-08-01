@@ -17,7 +17,7 @@ echohugeheader "Checking Prereqs"
 sudo apt -y -f install git
 
 echohugeheader "Getting Scripts"
-wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | sudo -E bash -
+wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | bash -
 
 echohugeheader "Cleaning New Installation"
 sudo apt purge -y -f \
