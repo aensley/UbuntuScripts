@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+echoheader "Installing latest ADB"
+wget -O /tmp/platform-tools-latest-linux.zip https://dl.google.com/android/repository/platform-tools-latest-linux.zip && \
+unzip -q -o /tmp/platform-tools-latest-linux.zip -d /opt/
+rm /tmp/platform-tools-latest-linux.zip
