@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Clear RAM file cache
+
+sudo sync && echo 3 | sudo tee /proc/sys/vm/drop_caches

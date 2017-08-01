@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# List old kernel packages that aren't needed anymore
+
+dpkg -l 'linux-*' | sed '/^ii/!d;/'"$(uname -r | sed "s/\(.*\)-\([^0-9]\+\)/\1/")"'/d;s/^[^ ]* [^ ]* \([^ ]*\).*/\1/;/[0-9]/!d'

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+sudo zfs get compressratio && sudo zpool list && sudo zpool status && sudo free -m

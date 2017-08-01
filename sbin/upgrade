@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# Update Ubuntu packages, Snaps, GRUB, Node.js packages, Ruby Gems, Python Packages, Composer packages, and ADB.
+
+echoheader "Upgrading System Packages"
+sudo apt update && sudo apt -y -f -u full-upgrade && sudo apt autoremove --purge && sudo apt clean
+
+if commandExists snap ; then
+  echoheader "Upgrading Snaps"
+  sudo snap refresh
+fi
+
+if commandExists update-grub ; then
+  echoheader "Updating GRUB"
+  sudo update-grub
+fi
+
+if commandExists npm ; then
+  echoheader "Updating NPM Packages"
+  cd /usr/lib/node_modules && sudo npm update -g
+fi
+
+if commandExists gem ; then
+  echoheader "Updating Ruby Gems"
+  sudo -H gem update --system
+  sudo -H gem update
+fi
+
+if commandExists pip ; then
+  echoheader "Upgrading Python Packages"
+  sudo -H pip freeze --local | grep -v '^\-e' | cut -d = -f 1  | xargs -n1 sudo -H pip install -U
+fi
+
+if commandExists composer ; then
+  echoheader "Updating Composer and Composer Packages"
+  sudo -H composer self-update
+  cd ~/.composer/ && composer update
+fi
+
+if [ -d "/opt/platform-tools/" ]; then
+  echoheader "Updating ADB"
+  wget -O /tmp/platform-tools-latest-linux.zip https://dl.google.com/android/repository/platform-tools-latest-linux.zip
+  unzip -q -o /tmp/platform-tools-latest-linux.zip -d /opt/
+  rm /tmp/platform-tools-latest-linux.zip
+fi
+
+exit $?

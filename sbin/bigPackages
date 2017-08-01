@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# List large packages
+
+dpkg-query -W --showformat='${Installed-Size} ${Package}\n' | sort -nr | less

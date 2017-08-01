@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Move memory in Swap to RAM.
+
+mem=$(free  | awk '/Mem:/ {print $4}')
+swap=$(free | awk '/Swap:/ {print $3}')
+
+echo "Mem (free):  $mem"
+echo "Swap (used): $swap"
+
+if [ $mem -lt $swap ]; then
+    echo "ERROR: not enough RAM to write swap back. Nothing done." >&2
+    exit 1
+fi
+
+sudo swapoff -a && sudo swapon -a

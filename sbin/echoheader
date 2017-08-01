@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# Echos a header
+
+echo
+echo "========== $1 =========="
+echo

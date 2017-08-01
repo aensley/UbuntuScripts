@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+# Performs common setup steps on a new Installation.
+
+if ! [ $(id -u) = 0 ]; then
+  echo 'This script must be run as root!'
+  exit 1
+fi
+
+echohugeheader () {
+  echo
+  echo "==================== $1 ===================="
+  echo
+}
+
+echohugeheader "Checking Prereqs"
+sudo apt -y -f install git
+
+echohugeheader "Getting Scripts"
+wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | sudo -E bash -
+
+echohugeheader "Cleaning New Installation"
+sudo apt purge -y -f \
+  activity-log-manager \
+  aisleriot* \
+  apport \
+  cheese \
+  deja-dup* \
+  gnome-mahjongg \
+  gnome-mines \
+  gnome-sudoku \
+  libreoffice* \
+  onboard* \
+  remmina* \
+  rhythmbox* \
+  simple-scan \
+  thunderbird* \
+  totem* \
+  transmission* \
+  unity-control-center-signon \
+  unity-webapps-common \
+  vino* \
+  webbrowser-app \
+  xserver-xorg-input-wacom \
+  zeitgeist-datahub
+sudo apt -y -f --purge autoremove
+sudo rm /usr/share/applications/unity-wacom-panel.desktop
+
+echohugeheader "Upgrading System"
+/usr/local/sbin/upgrade

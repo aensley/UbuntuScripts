@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Returns true if the current working directory is a git repository directory. False if not.
+
+[ -d .git ] || git rev-parse --is-inside-work-tree > /dev/null 2>&1;

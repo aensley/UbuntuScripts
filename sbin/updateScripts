@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+# Updates installed scripts from public repository.
+
+SCRIPTS_GIT_DIR=~/scripts/
+SCRIPTS_DIR=/usr/local/sbin/
+GIT_REPO=https://github.com/aensley/UbuntuScripts.git
+
+echosmallerheader () {
+  echo
+  echo "===== $1 ====="
+  echo
+}
+
+echosmallerheader 'Syncing Git Repo'
+if [ -d ${SCRIPTS_GIT_DIR} ]; then
+  git -C ${SCRIPTS_GIT_DIR} checkout -f --quiet
+  git -C ${SCRIPTS_GIT_DIR} fetch --all --prune --tags --quiet
+  git -C ${SCRIPTS_GIT_DIR} checkout origin/master --quiet
+else
+  git clone ${GIT_REPO} ${SCRIPTS_GIT_DIR}
+fi
+
+echosmallerheader 'Copying Script Files'
+sudo rsync -qpt ${SCRIPTS_GIT_DIR}sbin/* ${SCRIPTS_DIR}
+sudo chown root:root ${SCRIPTS_DIR}*
+sudo chmod 755 ${SCRIPTS_DIR}*
+
+echosmallerheader 'Finished!'

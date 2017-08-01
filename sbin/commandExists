@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Returns true if the given command ($1) exists. False if not.
+
+command -v "$1" >/dev/null 2>&1 ;

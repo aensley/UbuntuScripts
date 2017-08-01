@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+
+if ! inGitDir; then
+  echo "This script must be run in a git repository."
+  exit 1
+fi
+
+echo ""
+echo "********** WARNING **********"
+echo "This script is VERY DANGEROUS!"
+echo ""
+echo "It can cause irreversible catastrophic data loss!"
+echo ""
+echo "Do not use unless you are ABSOLUTELY SURE you know what you are doing."
+echo ""
+echo "----"
+echo ""
+echo "This script must be run from the root of the git directory you are attempting to modify."
+echo ""
+read -p "Press [Enter] to continue or [CTRL-C] to abort..."
+echo ""
+echo "----"
+echo ""
+
+commit=""
+while [ -z "$commit" ]; do
+  echo ""
+  echo -n "Paste the SHA-1 hash of the commit to roll this git repository back to: "
+  read -e commit
+done
+
+echo ""
+echo "Continuing will reset this git repository to the following state:"
+echo '```'
+git log -1 $commit
+echo '```'
+echo ""
+echo "The following commits will be PERMANENTLY lost:"
+echo '```'
+git log $commit..HEAD
+echo '```'
+echo ""
+echo "If this is not what you want to do, press [CTRL-C] now to abort!"
+read -p "If you are CERTAIN this is what you want to do, press [Enter] to continue..."
+echo '```'
+git reset --hard $commit
+echo '```'
+echo ""
+if [ "$?" = "0" ]; then
+  echo "Push these changes to the server? This is the point of no return. There is no undo."
+  read -p "[Enter] to continue or [CTRL-C] to abort..."
+  echo '```'
+  git push origin HEAD --force
+  echo '```'
+  echo ""
+  echo "Done"
+else
+  echo "Git reset failed. Exiting."
+fi

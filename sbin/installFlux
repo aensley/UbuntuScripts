@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+# Install f.lux on Ubuntu 16.04+
+
+sudo apt-get install git python-glade2 python-appindicator python-pexpect python-gconf python-xdg && \
+git clone https://github.com/Kilian/f.lux-indicator-applet.git && \
+cd f.lux-indicator-applet && \
+chmod +x setup.py && \
+sudo ./setup.py install && \
+sudo chmod +x /usr/local/bin/xflux && \
+fluxgui & disown
