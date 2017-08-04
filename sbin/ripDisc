@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+
+echo
+echo '# RIP DISC'
+echo
+echo 'This script will rip all titles (10 minutes or longer)'
+echo 'from the first disc available'
+echo
+echo 'Titles will be placed in: ~/Videos/Source/ and ~/Videos/Converted/'
+echo
+
+SRC=~/Videos/Source/
+DEST=~/Videos/Converted/
+DEST_EXT=mp4
+HANDBRAKE_PRESET_DIR=/usr/local/share/handbrake-presets/
+
+##### Get input #####
+echo 'Is this disc a DVD or Blu-Ray? (Enter the number)'
+echo
+
+select disc_format in DVD "Blu-Ray"
+do
+  case ${disc_format} in
+  DVD|"Blu-Ray")
+    break
+    ;;
+  *)
+    echo
+    echo 'Invalid entry'
+    echo
+    ;;
+  esac
+done
+
+echo 'Is this disc for a Movie or TV Show? (Enter the number)'
+echo
+
+select disc_type in Movie "TV Show"
+do
+  case ${disc_type} in
+  Movie|"TV Show")
+    break
+    ;;
+  *)
+    echo
+    echo 'Invalid entry'
+    echo
+    ;;
+  esac
+done
+
+echo
+echo 'Is this a Film or Animation? (Enter the number)'
+echo
+
+select film_type in Film Animation
+do
+  case ${film_type} in
+  Film|Animation)
+    break
+    ;;
+  *)
+    echo
+    echo 'Invalid entry'
+    echo
+    ;;
+  esac
+done
+
+disc_name=""
+while [ -z "$disc_name" ]; do
+  echo
+  echo -n "What is the name of this ${disc_type}?: "
+  read -e disc_name
+done
+
+# Replace all non-alphanumeric characters with "_"
+escaped_disc_name=`echo "${disc_name}" | tr -c '[[:alnum:]]' '_'`
+
+preset_file=''
+preset_name=''
+if [ "${disc_format}" = "DVD" ]; then
+  preset_file=${HANDBRAKE_PRESET_DIR}${film_type}.json
+  preset_name=${film_type}
+else
+  preset_file=${HANDBRAKE_PRESET_DIR}${film_type}_HD.json
+  preset_name="${film_type} HD"
+  DEST_EXT=mkv
+fi
+
+
+SRC=${SRC}${disc_name}/
+DEST=${DEST}${disc_name}/
+mkdir -p ${SRC}
+
+##### Rip the disc #####
+/usr/bin/makemkvcon mkv disc:0 all ~/Videos/Source/${disc_name}
+
+if [ $? = 0 ]; then
+  echo
+  echo '## Ripping complete'
+  echo
+  echo ' ----- You can now remove the disc from the drive. -----'
+  echo
+
+  mkdir -p ${DEST}
+
+  for FILE in `ls ${SRC}`
+  do
+    filename=$(basename ${FILE})
+    echo
+    echo "## ${filename}"
+    echo
+    filename=${filename%.*}
+
+    /usr/bin/HandBrakeCLI -i ${SRC}${FILE} -o ${DEST}${filename}.${DEST_EXT} --verbose=0 --optimize --preset-import-file ${preset_file} --preset "${preset_name}"
+
+    if [ $? = 0 ]; then
+      echo
+      echo "Success! Deleting source file: ${SRC}${FILE}"
+      echo
+      rm -f ${SRC}${FILE}
+    fi
+  done
+
+  echo
+  echo '# FINISHED'
+  echo
+  echo 'Conversion finished.'
+  echo 'Will now open converted files folder and movie search page.'
+  echo
+
+  xdg-open ${DEST}
+  if [ "${disc_type}" = "Movie" ]; then
+    xdg-open "http://www.imdb.com/find?s=tt&q=${disc_name}"
+  else
+    xdg-open "https://thetvdb.com/?tab=listseries&function=Search&string=${disc_name}"
+  fi
+
+else
+  echo
+  echo '## Errors encountered'
+  echo
+  echo 'See log output above.'
+  echo
+fi

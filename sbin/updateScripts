@@ -4,6 +4,7 @@
 
 SCRIPTS_GIT_DIR=~/UbuntuScriptsGit/
 SCRIPTS_DIR=/usr/local/sbin/
+SHARE_DIR=/usr/local/share/
 GIT_REPO=https://github.com/aensley/UbuntuScripts.git
 
 echosmallerheader () {
@@ -23,6 +24,7 @@ fi
 
 echosmallerheader 'Copying Script Files'
 sudo rsync -qpt ${SCRIPTS_GIT_DIR}sbin/* ${SCRIPTS_DIR}
+sudo rsync -qptr ${SCRIPTS_GIT_DIR}share/* ${SHARE_DIR}
 sudo chown root:root ${SCRIPTS_DIR}*
 sudo chmod 755 ${SCRIPTS_DIR}*
 
