@@ -15,8 +15,8 @@ DEST_EXT=mp4
 HANDBRAKE_PRESET_DIR=/usr/local/share/handbrake-presets/
 
 ##### Get input #####
-echo 'Is this disc a DVD or Blu-Ray? (Enter the number)'
 echo
+echo 'Is this disc a DVD or Blu-Ray? (Enter the number)'
 
 select disc_format in DVD "Blu-Ray"
 do
@@ -32,8 +32,8 @@ do
   esac
 done
 
-echo 'Is this disc for a Movie or TV Show? (Enter the number)'
 echo
+echo "Is this ${disc_format} for a Movie or TV Show? (Enter the number)"
 
 select disc_type in Movie "TV Show"
 do
@@ -51,7 +51,6 @@ done
 
 echo
 echo 'Is this a Film or Animation? (Enter the number)'
-echo
 
 select film_type in Film Animation
 do
@@ -88,19 +87,29 @@ else
   DEST_EXT=mkv
 fi
 
-
-SRC=${SRC}${disc_name}/
-DEST=${DEST}${disc_name}/
+SRC=${SRC}${escaped_disc_name}/
+DEST=${DEST}${escaped_disc_name}/
 mkdir -p ${SRC}
 
+echo
+echo
+echo "## That's it for now!"
+echo
+echo "Go enjoy your day and check back in a bit."
+echo "This will probably take a while."
+echo
+echo
+
 ##### Rip the disc #####
-/usr/bin/makemkvcon mkv disc:0 all ~/Videos/Source/${disc_name}
+/usr/bin/makemkvcon mkv disc:0 all ${SRC}
 
 if [ $? = 0 ]; then
+  echo
   echo
   echo '## Ripping complete'
   echo
   echo ' ----- You can now remove the disc from the drive. -----'
+  echo
   echo
 
   mkdir -p ${DEST}
