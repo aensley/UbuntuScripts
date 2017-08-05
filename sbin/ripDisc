@@ -150,7 +150,7 @@ if [ $? = 0 ]; then
   echo '# FINISHED'
   echo
   echo 'Conversion finished.'
-  echo 'Will now open converted files folder and movie search page.'
+  echo "Will now open converted files folder and ${disc_type} search page."
   echo
   hr
   echo
