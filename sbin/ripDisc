@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+hr () {
+  echo '--------------------------------------------------------------------------------'
+}
+
+echo
+hr
 echo
 echo '# RIP DISC'
 echo
@@ -7,6 +13,8 @@ echo 'This script will rip all titles (10 minutes or longer)'
 echo 'from the first disc available'
 echo
 echo 'Titles will be placed in: ~/Videos/Source/ and ~/Videos/Converted/'
+echo
+hr
 echo
 
 SRC=~/Videos/Source/
@@ -92,12 +100,13 @@ DEST=${DEST}${escaped_disc_name}/
 mkdir -p ${SRC}
 
 echo
+hr
 echo
 echo "## That's it for now!"
 echo
-echo "Go enjoy your day and check back in a bit."
-echo "This will probably take a while."
+echo "Go enjoy your day and check back in a bit. This will probably take a while."
 echo
+hr
 echo
 
 ##### Rip the disc #####
@@ -105,17 +114,21 @@ echo
 
 if [ $? = 0 ]; then
   echo
+  hr
   echo
   echo '## Ripping complete'
   echo
-  echo ' ----- You can now remove the disc from the drive. -----'
+  echo ' You can now remove the disc from the drive.'
   echo
+  hr
   echo
 
   mkdir -p ${DEST}
 
   for FILE in `ls ${SRC}`
   do
+    echo
+    hr
     filename=$(basename ${FILE})
     echo
     echo "## ${filename}"
@@ -127,16 +140,19 @@ if [ $? = 0 ]; then
     if [ $? = 0 ]; then
       echo
       echo "Success! Deleting source file: ${SRC}${FILE}"
-      echo
       rm -f ${SRC}${FILE}
     fi
   done
 
   echo
+  hr
+  echo
   echo '# FINISHED'
   echo
   echo 'Conversion finished.'
   echo 'Will now open converted files folder and movie search page.'
+  echo
+  hr
   echo
 
   xdg-open ${DEST}
@@ -148,8 +164,12 @@ if [ $? = 0 ]; then
 
 else
   echo
+  hr
+  echo
   echo '## Errors encountered'
   echo
   echo 'See log output above.'
+  echo
+  hr
   echo
 fi
