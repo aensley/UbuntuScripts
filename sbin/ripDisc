@@ -157,7 +157,7 @@ if [ $? = 0 ]; then
 
   xdg-open ${DEST}
   if [ "${disc_type}" = "Movie" ]; then
-    xdg-open "http://www.imdb.com/find?s=tt&q=${disc_name}"
+    xdg-open "http://www.imdb.com/find?s=tt&ttype=ft&q=${disc_name}"
   else
     xdg-open "https://thetvdb.com/?tab=listseries&function=Search&string=${disc_name}"
   fi
