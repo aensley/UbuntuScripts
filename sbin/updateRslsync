@@ -2,6 +2,8 @@
 
 # Updates Resilio Sync
 
+sudo mkdir -p /opt/sync/
+
 echoheader "Stopping Rslsync" && \
 sudo killall -9 rslsync && \
 cd /opt/sync/ && \
