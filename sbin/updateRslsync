@@ -11,4 +11,4 @@ echoheader "Extracting Update" && \
 sudo tar -zxf rslsync.tar.gz && \
 sudo rm rslsync.tar.gz && \
 echoheader "Starting Rslsync" && \
-rslsync --config /opt/sync/sync.conf
+/usr/local/sbin/startRslsync
