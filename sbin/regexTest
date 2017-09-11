@@ -27,4 +27,4 @@ while [[ $1 ]]; do
     echo "$1 does not match"
   fi
   shift
-donehttps://www.linuxjournal.com/content/bash-regular-expressions
+done
