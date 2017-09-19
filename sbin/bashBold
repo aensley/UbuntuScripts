@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Set Bash output to be bold.
+
+echo -en "\033[1m"

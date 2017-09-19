@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Set Bash output foreground color to red.
+
+echo -en "\033[31m"

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Set Bash output foreground color to green.
+
+echo -en "\033[32m"

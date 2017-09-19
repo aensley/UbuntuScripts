@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Reset bash output styles.
+
+echo -en "\033[m"

@@ -3,5 +3,10 @@
 # Echos a header
 
 echo
-echo "========== $1 =========="
+echo -n "========== "
+bashGreen
+bashBold
+echo -n $1
+bashReset
+echo " =========="
 echo
