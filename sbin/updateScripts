@@ -9,7 +9,7 @@ GIT_REPO=https://github.com/aensley/UbuntuScripts.git
 
 echosmallerheader () {
   echo
-  echo -e "===== \033[32m\033[1m$1\033[m ====="
+  echo -e "===== \033[34m\033[1m$1\033[m ====="
   echo
 }
 
