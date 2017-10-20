@@ -14,32 +14,129 @@ sudo apt -y -f install git
 echohugeheader "Getting Scripts"
 wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | bash -
 
-echohugeheader "Cleaning New Installation"
-sudo apt purge -y -f \
-  activity-log-manager \
-  aisleriot* \
-  apport \
-  cheese \
-  deja-dup* \
-  gnome-mahjongg \
-  gnome-mines \
-  gnome-sudoku \
-  libreoffice* \
-  onboard* \
-  remmina* \
-  rhythmbox* \
-  simple-scan \
-  thunderbird* \
-  totem* \
-  transmission* \
-  unity-control-center-signon \
-  unity-webapps-common \
-  vino* \
-  webbrowser-app \
-  xserver-xorg-input-wacom \
-  zeitgeist-datahub
+echo
+echo -n "Remove games? (Y/n): "
+read -e confirm
+if ! [ "$confirm" = "n" ]; then
+  echohugeheader "Removing Games"
+  sudo apt purge -y -f \
+    aisleriot* \
+    cheese \
+    gnome-mahjongg \
+    gnome-mines \
+    gnome-sudoku
+fi
+
+echo
+echo -n "Remove tracking? (Y/n): "
+read -e confirm
+if ! [ "$confirm" = "n" ]; then
+  echohugeheader "Removing Tracking"
+  sudo apt purge -y -f \
+    activity-log-manager \
+    apport \
+    zeitgeist-datahub
+fi
+
+echo
+echo -n "Remove LibreOffice? (y/N): "
+read -e removelibreoffice
+if [ "$removelibreoffice" = "y" ]; then
+  echohugeheader "Removing LibreOffice"
+  sudo apt purge -y -f libreoffice*
+fi
+
+echo
+echo -n "Remove media? (Y/n): "
+read -e confirm
+if ! [ "$confirm" = "n" ]; then
+  echohugeheader "Removing Media"
+  sudo apt purge -y -f \
+    rhythmbox* \
+    simple-scan \
+    totem*
+fi
+
+echo
+echo -n "Remove misc? (Y/n): "
+read -e confirm
+if ! [ "$confirm" = "n" ]; then
+  echohugeheader "Removing Misc"
+  sudo apt purge -y -f \
+    deja-dup* \
+    remmina* \
+    thunderbird* \
+    transmission* \
+    vino* \
+    xserver-xorg-input-wacom
+  sudo rm /usr/share/applications/gnome-wacom-panel.desktop
+fi
+
+echohugeheader "Removing obsolete dependencies"
 sudo apt -y -f --purge autoremove
-sudo rm /usr/share/applications/unity-wacom-panel.desktop
+
+echohugeheader "Upgrading System"
+/usr/local/sbin/upgrade
+
+echohugeheader "Installing common packages"
+sudo apt -y -f install gnome-tweak-tool vlc
+
+echo
+echo -n "Install Chrome? (Y/n): "
+read -e confirm
+if ! [ "$confirm" = "n" ]; then
+  echohugeheader "Installing Chrome"
+  wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+  sudo dpkg -i /tmp/chrome.deb
+  sudo apt -f install
+  rm /tmp/chrome.deb
+fi
+
+if ! [ "$removelibreoffice" = "y" ]; then
+  echo
+  echo -n "Install LibreOffice Fresh? (Y/n): "
+  read -e confirm
+  if ! [ "$confirm" = "n" ]; then
+    echohugeheader "Installing LibreOffice Fresh"
+    sudo add-apt-repository -y ppa:libreoffice/ppa
+  fi
+fi
+
+echo
+echo -n "Install Enpass? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing Enpass"
+  echo "deb http://repo.sinew.in/ stable main" | sudo tee /etc/apt/sources.list.d/enpass.list
+  wget -O - https://dl.sinew.in/keys/enpass-linux.key | sudo apt-key add -
+  sudo apt update && sudo apt -y -f install enpass
+fi
+
+echo
+echo -n "Install PHP (Ondrej)? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing PHP"
+  sudo add-apt-repository -y ppa:ondrej/php
+  sudo apt update && sudo apt -y -f install php-cli php-curl php-mbstring php-xml php-zip
+fi
+
+echo
+echo -n "Install Node.js? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing Node.js"
+  wget -qO - https://deb.nodesource.com/setup_8.x | sudo -E bash -
+  sudo apt install -y nodejs
+fi
+
+echo
+echo -n "Install System Load Indicator? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing System Load Indicator"
+  sudo apt -y -f install indicator-multiload
+fi
 
 echohugeheader "Upgrading System"
 /usr/local/sbin/upgrade
