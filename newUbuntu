@@ -131,6 +131,14 @@ if [ "$confirm" = "y" ]; then
 fi
 
 echo
+echo -n "Install GIMP? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing GIMP"
+  sudo apt -y -f install gimp gimp-data-extras gimp-plugin-registry
+fi
+
+echo
 echo -n "Install System Load Indicator? (y/N): "
 read -e confirm
 if [ "$confirm" = "y" ]; then
