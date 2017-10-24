@@ -113,6 +113,14 @@ if [ "$confirm" = "y" ]; then
 fi
 
 echo
+echo -n "Install Java? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing Java"
+  sudo apt -y -f install openjdk-9-jre
+fi
+
+echo
 echo -n "Install PHP (Ondrej)? (y/N): "
 read -e confirm
 if [ "$confirm" = "y" ]; then
@@ -128,6 +136,15 @@ if [ "$confirm" = "y" ]; then
   echohugeheader "Installing Node.js"
   wget -qO - https://deb.nodesource.com/setup_8.x | sudo -E bash -
   sudo apt install -y nodejs
+fi
+
+echo
+echo -n "Install Python? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing Python"
+  sudo apt -y -f install python-pip
+  sudo pip install -U git+git://github.com/josegonzalez/python-github-backup.git#egg=github-backup
 fi
 
 echo
