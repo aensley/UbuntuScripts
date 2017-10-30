@@ -92,6 +92,14 @@ if ! [ "$confirm" = "n" ]; then
   rm /tmp/chrome.deb
 fi
 
+echo
+echo -n "Install Chromium? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing Chromium"
+  sudo apt -y -f install chromium-browser
+fi
+
 if ! [ "$removelibreoffice" = "y" ]; then
   echo
   echo -n "Install LibreOffice Fresh? (Y/n): "
@@ -113,11 +121,19 @@ if [ "$confirm" = "y" ]; then
 fi
 
 echo
-echo -n "Install Java? (y/N): "
+echo -n "Install JDK? (y/N): "
 read -e confirm
 if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing Java"
-  sudo apt -y -f install openjdk-9-jre
+  echohugeheader "Installing JRE"
+  sudo apt -y -f install openjdk-9-jdk
+else
+  echo
+  echo -n "Install JRE? (y/N): "
+  read -e confirm
+  if [ "$confirm" = "y" ]; then
+    echohugeheader "Installing JRE"
+    sudo apt -y -f install openjdk-9-jre
+  fi
 fi
 
 echo
