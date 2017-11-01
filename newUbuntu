@@ -9,7 +9,7 @@ echohugeheader () {
 }
 
 echohugeheader "Checking Prereqs"
-sudo apt -y -f install git
+sudo apt update && sudo apt -y -f install git
 
 echohugeheader "Getting Scripts"
 wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | bash -
@@ -19,12 +19,7 @@ echo -n "Remove games? (Y/n): "
 read -e confirm
 if ! [ "$confirm" = "n" ]; then
   echohugeheader "Removing Games"
-  sudo apt purge -y -f \
-    aisleriot* \
-    cheese \
-    gnome-mahjongg \
-    gnome-mines \
-    gnome-sudoku
+  sudo apt purge -y -f aisleriot* cheese gnome-mahjongg gnome-mines gnome-sudoku
 fi
 
 echo
@@ -32,10 +27,7 @@ echo -n "Remove tracking? (Y/n): "
 read -e confirm
 if ! [ "$confirm" = "n" ]; then
   echohugeheader "Removing Tracking"
-  sudo apt purge -y -f \
-    activity-log-manager \
-    apport \
-    zeitgeist-datahub
+  sudo apt purge -y -f activity-log-manager apport zeitgeist-datahub
 fi
 
 echo
@@ -51,10 +43,7 @@ echo -n "Remove media? (Y/n): "
 read -e confirm
 if ! [ "$confirm" = "n" ]; then
   echohugeheader "Removing Media"
-  sudo apt purge -y -f \
-    rhythmbox* \
-    simple-scan \
-    totem*
+  sudo apt purge -y -f rhythmbox* simple-scan totem*
 fi
 
 echo
@@ -62,13 +51,7 @@ echo -n "Remove misc? (Y/n): "
 read -e confirm
 if ! [ "$confirm" = "n" ]; then
   echohugeheader "Removing Misc"
-  sudo apt purge -y -f \
-    deja-dup* \
-    remmina* \
-    thunderbird* \
-    transmission* \
-    vino* \
-    xserver-xorg-input-wacom
+  sudo apt purge -y -f deja-dup* remmina* thunderbird* transmission* vino* xserver-xorg-input-wacom
   sudo rm /usr/share/applications/gnome-wacom-panel.desktop
 fi
 
@@ -78,8 +61,21 @@ sudo apt -y -f --purge autoremove
 echohugeheader "Upgrading System"
 /usr/local/sbin/upgrade
 
-echohugeheader "Installing common packages"
-sudo apt -y -f install gnome-tweak-tool vlc
+echo
+echo -n "Install Gnome Tweak Tool? (Y/n): "
+read -e confirm
+if ! [ "$confirm" = "n" ]; then
+  echohugeheader "Installing Gnome Tweak Tool"
+  sudo apt -y -f install gnome-tweak-tool
+fi
+
+echo
+echo -n "Install VLC? (Y/n): "
+read -e confirm
+if ! [ "$confirm" = "n" ]; then
+  echohugeheader "Installing VLC"
+  sudo apt -y -f install vlc
+fi
 
 echo
 echo -n "Install Chrome? (Y/n): "
