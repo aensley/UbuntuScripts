@@ -7,5 +7,7 @@ Scripts I use on Ubuntu / Debian systems.
 First step to perform on a new Ubuntu installation:
 
 ```ShellSession
-wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/newUbuntu | bash -
+wget -O /tmp/newUbuntu https://raw.githubusercontent.com/aensley/UbuntuScripts/master/newUbuntu && \
+chmod +x /tmp/newUbuntu && \
+/tmp/newUbuntu
 ```
