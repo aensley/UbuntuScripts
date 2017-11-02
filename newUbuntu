@@ -84,7 +84,7 @@ if ! [ "$confirm" = "n" ]; then
   echohugeheader "Installing Chrome"
   wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
   sudo dpkg -i /tmp/chrome.deb
-  sudo apt -f install
+  sudo apt -y -f install
   rm /tmp/chrome.deb
 fi
 
@@ -94,6 +94,16 @@ read -e confirm
 if [ "$confirm" = "y" ]; then
   echohugeheader "Installing Chromium"
   sudo apt -y -f install chromium-browser
+fi
+
+echo
+echo -n "Install Brave? (y/N): "
+read -e confirm
+if [ "$confirm" = "y" ]; then
+  echohugeheader "Installing Brave"
+  wget -qO- https://s3-us-west-2.amazonaws.com/brave-apt/keys.asc | sudo apt-key add -
+  echo "deb [arch=amd64] https://s3-us-west-2.amazonaws.com/brave-apt `lsb_release -sc` main" | sudo tee -a /etc/apt/sources.list.d/brave-`lsb_release -sc`.list
+  sudo apt update && sudo apt -y -f install brave
 fi
 
 if ! [ "$removelibreoffice" = "y" ]; then
@@ -120,7 +130,7 @@ echo
 echo -n "Install JDK? (y/N): "
 read -e confirm
 if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing JRE"
+  echohugeheader "Installing JDK"
   sudo apt -y -f install openjdk-9-jdk
 else
   echo
