@@ -2,10 +2,117 @@
 
 # Performs common setup steps on a new Installation.
 
+toRemove=''
+toInstall=''
+installGithubBackup=''
+
 echohugeheader () {
   echo
   echo "==================== $1 ===================="
   echo
+}
+
+removeGames() {
+  toRemove="${toRemove} aisleriot* cheese gnome-mahjongg gnome-mines gnome-sudoku"
+}
+
+removeTracking() {
+  toRemove="${toRemove} activity-log-manager apport zeitgeist-datahub"
+}
+
+removeLibreOffice() {
+  toRemove="${toRemove} libreoffice*"
+}
+
+removeMedia() {
+  toRemove="${toRemove} rhythmbox* simple-scan totem*"
+}
+
+removeMisc() {
+  toRemove="${toRemove} deja-dup* remmina* thunderbird* transmission* vino* xserver-xorg-input-wacom"
+  sudo rm /usr/share/applications/gnome-wacom-panel.desktop
+}
+
+removeApps(){
+  echohugeheader "Removing Apps"
+  sudo apt purge -y -f ${toRemove} && sudo apt -y -f --purge autoremove
+}
+
+installTweaks() {
+  toInstall="${toInstall} gnome-tweak-tool"
+}
+
+installGnomeExtensions() {
+  toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions"
+}
+
+installVlc() {
+  toInstall="${toInstall} vlc"
+}
+
+installChrome() {
+  echohugeheader "Installing Chrome"
+  wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+  sudo dpkg -i /tmp/chrome.deb
+  rm /tmp/chrome.deb
+}
+
+installChromium() {
+  toInstall="${toInstall} chromium-browser"
+}
+
+installBrave() {
+  echohugeheader "Installing Brave"
+  wget -qO- https://s3-us-west-2.amazonaws.com/brave-apt/keys.asc | sudo apt-key add -
+  echo "deb [arch=amd64] https://s3-us-west-2.amazonaws.com/brave-apt `lsb_release -sc` main" | sudo tee -a /etc/apt/sources.list.d/brave-`lsb_release -sc`.list
+  toInstall="${toInstall} brave"
+}
+
+installLibreOfficeFresh() {
+  echohugeheader "Installing LibreOffice Fresh"
+  sudo add-apt-repository -y ppa:libreoffice/ppa
+  toInstall="${toInstall} libreoffice-calc libreoffice-gnome libreoffice-impress libreoffice-pdfimport libreoffice-style-* libreoffice-writer"
+}
+
+installGimp() {
+  toInstall="${toInstall} gimp gimp-data-extras gimp-plugin-registry"
+}
+
+installEnpass() {
+  echohugeheader "Installing Enpass"
+  echo "deb http://repo.sinew.in/ stable main" | sudo tee /etc/apt/sources.list.d/enpass.list
+  wget -O - https://dl.sinew.in/keys/enpass-linux.key | sudo apt-key add -
+  toInstall="${toInstall} enpass"
+}
+
+installJre() {
+  toInstall="${toInstall} openjdk-9-jre"
+}
+
+installJdk() {
+  toInstall="${toInstall} openjdk-9-jdk"
+}
+
+installPhp() {
+  echohugeheader "Installing PHP"
+  sudo add-apt-repository -y ppa:ondrej/php
+  toInstall="${toInstall} php-cli php-curl php-json php-mbstring php-mcrypt php-xml php-zip"
+}
+
+installNodejs() {
+  echohugeheader "Installing Node.js"
+  wget -qO - https://deb.nodesource.com/setup_8.x | sudo -E bash -
+  toInstall="${toInstall} nodejs"
+}
+
+installPython() {
+  installGithubBackup='1'
+  toInstall="${toInstall} python-pip"
+}
+
+installApps(){
+  echohugeheader "Installing Apps"
+  sudo apt update && sudo apt -y -f install ${toInstall}
 }
 
 echohugeheader "Checking Prereqs"
@@ -14,175 +121,52 @@ sudo apt update && sudo apt -y -f install git
 echohugeheader "Getting Scripts"
 wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | bash -
 
-echo
-echo -n "Remove games? (Y/n): "
-read -e confirm
-if ! [ "$confirm" = "n" ]; then
-  echohugeheader "Removing Games"
-  sudo apt purge -y -f aisleriot* cheese gnome-mahjongg gnome-mines gnome-sudoku
-fi
+removeChoices=$(
+  whiptail --title "Select Software to Remove" --checklist "Select Software to Remove" 10 40 5 \
+    Games       "Games"         on \
+    Tracking    "Tracking"      on \
+    LibreOffice "LibreOffice"   off \
+    Media       "Media"         on \
+    Misc        "Miscellaneous" on \
+    3>&1 1>&2 2>&3
+)
 
-echo
-echo -n "Remove tracking? (Y/n): "
-read -e confirm
-if ! [ "$confirm" = "n" ]; then
-  echohugeheader "Removing Tracking"
-  sudo apt purge -y -f activity-log-manager apport zeitgeist-datahub
-fi
+installChoices=$(
+  whiptail --title "Select Software to Install" --checklist "Select Software to Install" 20 50 14 \
+    Tweaks           "Gnome Tweak Tool"  on \
+    GnomeExtensions  "Gnome Extensions"  on \
+    Vlc              "VLC"               on \
+    Chrome           "Chrome"            on \
+    Chromium         "Chromium"          on \
+    Brave            "Brave"             on \
+    LibreOfficeFresh "LibreOffice Fresh" on \
+    Gimp             "GIMP"              off \
+    Enpass           "Enpass"            off \
+    Jre              "JRE"               off \
+    Jdk              "JDK"               off \
+    Php              "PHP"               off \
+    Nodejs           "Node.js"           off \
+    Python           "Python"            off \
+    3>&1 1>&2 2>&3
+)
 
-echo
-echo -n "Remove LibreOffice? (y/N): "
-read -e removelibreoffice
-if [ "$removelibreoffice" = "y" ]; then
-  echohugeheader "Removing LibreOffice"
-  sudo apt purge -y -f libreoffice*
-fi
+for removeJob in ${removeChoices}; do
+  eval "remove${removeJob}"
+done
 
-echo
-echo -n "Remove media? (Y/n): "
-read -e confirm
-if ! [ "$confirm" = "n" ]; then
-  echohugeheader "Removing Media"
-  sudo apt purge -y -f rhythmbox* simple-scan totem*
-fi
-
-echo
-echo -n "Remove misc? (Y/n): "
-read -e confirm
-if ! [ "$confirm" = "n" ]; then
-  echohugeheader "Removing Misc"
-  sudo apt purge -y -f deja-dup* remmina* thunderbird* transmission* vino* xserver-xorg-input-wacom
-  sudo rm /usr/share/applications/gnome-wacom-panel.desktop
-fi
-
-echohugeheader "Removing obsolete dependencies"
-sudo apt -y -f --purge autoremove
+removeApps
 
 echohugeheader "Upgrading System"
-/usr/local/sbin/upgrade
+sudo apt update && sudo apt -y -f -u full-upgrade && sudo apt autoremove --purge && sudo apt clean
 
-echo
-echo -n "Install Gnome Tweak Tool? (Y/n): "
-read -e confirm
-if ! [ "$confirm" = "n" ]; then
-  echohugeheader "Installing Gnome Tweak Tool"
-  sudo apt -y -f install gnome-tweak-tool
-fi
+for installJob in ${installChoices}; do
+  eval "install${installJob}"
+done
 
-echo
-echo -n "Install VLC? (Y/n): "
-read -e confirm
-if ! [ "$confirm" = "n" ]; then
-  echohugeheader "Installing VLC"
-  sudo apt -y -f install vlc
-fi
+installApps
 
-echo
-echo -n "Install Chrome? (Y/n): "
-read -e confirm
-if ! [ "$confirm" = "n" ]; then
-  echohugeheader "Installing Chrome"
-  wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-  sudo dpkg -i /tmp/chrome.deb
-  sudo apt -y -f install
-  rm /tmp/chrome.deb
-fi
-
-echo
-echo -n "Install Chromium? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing Chromium"
-  sudo apt -y -f install chromium-browser
-fi
-
-echo
-echo -n "Install Brave? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing Brave"
-  wget -qO- https://s3-us-west-2.amazonaws.com/brave-apt/keys.asc | sudo apt-key add -
-  echo "deb [arch=amd64] https://s3-us-west-2.amazonaws.com/brave-apt `lsb_release -sc` main" | sudo tee -a /etc/apt/sources.list.d/brave-`lsb_release -sc`.list
-  sudo apt update && sudo apt -y -f install brave
-fi
-
-if ! [ "$removelibreoffice" = "y" ]; then
-  echo
-  echo -n "Install LibreOffice Fresh? (Y/n): "
-  read -e confirm
-  if ! [ "$confirm" = "n" ]; then
-    echohugeheader "Installing LibreOffice Fresh"
-    sudo add-apt-repository -y ppa:libreoffice/ppa
-  fi
-fi
-
-echo
-echo -n "Install Enpass? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing Enpass"
-  echo "deb http://repo.sinew.in/ stable main" | sudo tee /etc/apt/sources.list.d/enpass.list
-  wget -O - https://dl.sinew.in/keys/enpass-linux.key | sudo apt-key add -
-  sudo apt update && sudo apt -y -f install enpass
-fi
-
-echo
-echo -n "Install JDK? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing JDK"
-  sudo apt -y -f install openjdk-9-jdk
-else
-  echo
-  echo -n "Install JRE? (y/N): "
-  read -e confirm
-  if [ "$confirm" = "y" ]; then
-    echohugeheader "Installing JRE"
-    sudo apt -y -f install openjdk-9-jre
-  fi
-fi
-
-echo
-echo -n "Install PHP (Ondrej)? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing PHP"
-  sudo add-apt-repository -y ppa:ondrej/php
-  sudo apt update && sudo apt -y -f install php-cli php-curl php-mbstring php-xml php-zip
-fi
-
-echo
-echo -n "Install Node.js? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing Node.js"
-  wget -qO - https://deb.nodesource.com/setup_8.x | sudo -E bash -
-  sudo apt install -y nodejs
-fi
-
-echo
-echo -n "Install Python? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing Python"
-  sudo apt -y -f install python-pip
+if [ -n "${installGithubBackup}" ]; then
   sudo pip install -U git+git://github.com/josegonzalez/python-github-backup.git#egg=github-backup
-fi
-
-echo
-echo -n "Install GIMP? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing GIMP"
-  sudo apt -y -f install gimp gimp-data-extras gimp-plugin-registry
-fi
-
-echo
-echo -n "Install System Load Indicator? (y/N): "
-read -e confirm
-if [ "$confirm" = "y" ]; then
-  echohugeheader "Installing System Load Indicator"
-  sudo apt -y -f install indicator-multiload
 fi
 
 echohugeheader "Upgrading System"
