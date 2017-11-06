@@ -4,9 +4,11 @@
 
 toRemove=''
 toInstall=''
-installGithubBackup=''
+pythonInstalled=''
+gnomeExtensionsInstalled=''
+sensorsInstalled=''
 
-echohugeheader () {
+echoHugeHeader () {
   echo
   echo "==================== $1 ===================="
   echo
@@ -34,7 +36,7 @@ removeMisc() {
 }
 
 removeApps(){
-  echohugeheader "Removing Apps"
+  echoHugeHeader "Removing Apps"
   sudo apt purge -y -f ${toRemove} && sudo apt -y -f --purge autoremove
 }
 
@@ -44,6 +46,12 @@ installTweaks() {
 
 installGnomeExtensions() {
   toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions"
+  gnomeExtensionsInstalled='1'
+}
+
+installSensors() {
+  toInstall="${toInstall} lm-sensors hddtemp gir1.2-gtop-2.0 gir1.2-networkmanager-1.0  gir1.2-clutter-1.0"
+  sensorsInstalled='1'
 }
 
 installVlc() {
@@ -51,7 +59,7 @@ installVlc() {
 }
 
 installChrome() {
-  echohugeheader "Installing Chrome"
+  echoHugeHeader "Installing Chrome"
   wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
   sudo dpkg -i /tmp/chrome.deb
   rm /tmp/chrome.deb
@@ -62,14 +70,14 @@ installChromium() {
 }
 
 installBrave() {
-  echohugeheader "Installing Brave"
+  echoHugeHeader "Installing Brave"
   wget -qO- https://s3-us-west-2.amazonaws.com/brave-apt/keys.asc | sudo apt-key add -
   echo "deb [arch=amd64] https://s3-us-west-2.amazonaws.com/brave-apt `lsb_release -sc` main" | sudo tee -a /etc/apt/sources.list.d/brave-`lsb_release -sc`.list
   toInstall="${toInstall} brave"
 }
 
 installLibreOfficeFresh() {
-  echohugeheader "Installing LibreOffice Fresh"
+  echoHugeHeader "Installing LibreOffice Fresh"
   sudo add-apt-repository -y ppa:libreoffice/ppa
   toInstall="${toInstall} libreoffice-calc libreoffice-gnome libreoffice-impress libreoffice-pdfimport libreoffice-style-* libreoffice-writer"
 }
@@ -79,7 +87,7 @@ installGimp() {
 }
 
 installEnpass() {
-  echohugeheader "Installing Enpass"
+  echoHugeHeader "Installing Enpass"
   echo "deb http://repo.sinew.in/ stable main" | sudo tee /etc/apt/sources.list.d/enpass.list
   wget -O - https://dl.sinew.in/keys/enpass-linux.key | sudo apt-key add -
   toInstall="${toInstall} enpass"
@@ -94,31 +102,37 @@ installJdk() {
 }
 
 installPhp() {
-  echohugeheader "Installing PHP"
+  echoHugeHeader "Installing PHP"
   sudo add-apt-repository -y ppa:ondrej/php
   toInstall="${toInstall} php-cli php-curl php-json php-mbstring php-mcrypt php-xml php-zip"
 }
 
 installNodejs() {
-  echohugeheader "Installing Node.js"
+  echoHugeHeader "Installing Node.js"
   wget -qO - https://deb.nodesource.com/setup_8.x | sudo -E bash -
   toInstall="${toInstall} nodejs"
 }
 
 installPython() {
-  installGithubBackup='1'
+  pythonInstalled='1'
   toInstall="${toInstall} python-pip"
 }
 
+installGitHubBackup() {
+  if [ -n "${pythonInstalled}" ]; then
+    sudo pip install -U git+git://github.com/josegonzalez/python-github-backup.git#egg=github-backup
+  fi
+}
+
 installApps(){
-  echohugeheader "Installing Apps"
+  echoHugeHeader "Installing Apps"
   sudo apt update && sudo apt -y -f install ${toInstall}
 }
 
-echohugeheader "Checking Prereqs"
+echoHugeHeader "Checking Prereqs"
 sudo apt update && sudo apt -y -f install git
 
-echohugeheader "Getting Scripts"
+echoHugeHeader "Getting Scripts"
 wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | bash -
 
 removeChoices=$(
@@ -147,6 +161,7 @@ installChoices=$(
     Php              "PHP"               off \
     Nodejs           "Node.js"           off \
     Python           "Python"            off \
+    GitHubBackup     "GitHub Backup"     off \
     3>&1 1>&2 2>&3
 )
 
@@ -156,7 +171,7 @@ done
 
 removeApps
 
-echohugeheader "Upgrading System"
+echoHugeHeader "Upgrading System"
 sudo apt update && sudo apt -y -f -u full-upgrade && sudo apt autoremove --purge && sudo apt clean
 
 for installJob in ${installChoices}; do
@@ -165,9 +180,24 @@ done
 
 installApps
 
-if [ -n "${installGithubBackup}" ]; then
-  sudo pip install -U git+git://github.com/josegonzalez/python-github-backup.git#egg=github-backup
+if [ -n "${sensorsInstalled}" ]; then
+  echoHugeHeader "Setting up Sensors"
+  sudo sensors-detect
+  sudo /etc/init.d/kmod start
 fi
 
-echohugeheader "Upgrading System"
+echoHugeHeader "Upgrading System"
 /usr/local/sbin/upgrade
+
+if [ -n "${gnomeExtensionsInstalled}" ]; then
+  echoHugeHeader "Opening favorite Gnome extensions"
+  read -p "Please enter your email address for profile Gravatar: " gravatarEmail
+  dconf write /org/gnome/shell/extensions/gravatar/email "'${gravatarEmail}'"
+  xdg-open "https://extensions.gnome.org/extension/1262/bing-wallpaper-changer/"
+  xdg-open "https://extensions.gnome.org/extension/1015/gravatar/"
+  xdg-open "https://extensions.gnome.org/extension/750/openweather/"
+  xdg-open "https://extensions.gnome.org/extension/8/places-status-indicator/"
+  xdg-open "https://extensions.gnome.org/extension/7/removable-drive-menu/"
+  xdg-open "https://extensions.gnome.org/extension/1145/sensory-perception/"
+  xdg-open "https://extensions.gnome.org/extension/120/system-monitor/"
+fi
