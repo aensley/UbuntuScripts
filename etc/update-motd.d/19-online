@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Outputs a list of currently logged in users.
+
+echo -n "==============================="
+bashGreen
+echo -n " CURRENTLY ONLINE "
+bashReset
+echo "==============================="
+who --users --heading --ips

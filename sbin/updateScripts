@@ -25,6 +25,7 @@ fi
 echosmallerheader 'Copying Script Files'
 sudo rsync -qpt ${SCRIPTS_GIT_DIR}sbin/* ${SCRIPTS_DIR}
 sudo rsync -qptr ${SCRIPTS_GIT_DIR}share/* ${SHARE_DIR}
+sudo rsync -qpt ${SCRIPTS_GIT_DIR}etc/update-motd.d/* /etc/update-motd.d/
 sudo chown root:root ${SCRIPTS_DIR}*
 sudo chmod 755 ${SCRIPTS_DIR}*
 

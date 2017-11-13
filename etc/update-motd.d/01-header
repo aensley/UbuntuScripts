@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# Outputs a stylized, ASCII-art version of this host's name for use in banner messages.
+
+# Get the hostname.
+THISHOST=`cat /etc/hostname`
+
+bashGreen
+bashBold
+
+# Echo ASCII-art version, centered, in uppercase
+figlet -c -w 80 -f big ${THISHOST^^}
+
+bashReset

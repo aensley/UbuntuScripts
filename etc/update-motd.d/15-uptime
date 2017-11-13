@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# Outputs system boot time and uptime.
+
+btime=`who -b | sed -e 's/[^A-Z]*//'`
+utime=`uptime | sed -e 's/ [0-9:]* up />/' -e 's/,.*//'`
+echo -n "==============="
+bashGreen
+echo -n " BOOT TIME "
+bashReset
+echo -n "=============================="
+bashGreen
+echo -n " UPTIME "
+bashReset
+echo "================"
+bashBlue
+echo "               $btime                             $utime"
+bashReset
+echo

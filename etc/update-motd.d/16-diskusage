@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+# Outputs system disk usage.
+
+echo -n "=================================="
+bashGreen
+echo -n " DISK USAGE "
+bashReset
+echo "=================================="
+df -lh --type=ext4
+echo
