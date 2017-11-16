@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 PRODUCT_NAME='xmr-stak-cpu'
-XMR_CONFIG_DIR='/opt/xmr-config/'
-XMR_CONFIG_FILE="${XMR_CONFIG_DIR}${PRODUCT_NAME}-config.txt"
+XMR_CONFIG_FILE="/etc/${PRODUCT_NAME}.conf"
 XMR_STAK_DIR="/opt/${PRODUCT_NAME}/"
 XMR_STAK_BIN="${XMR_STAK_DIR}bin/${PRODUCT_NAME}"
 XMR_LOG_FILE="/var/log/${PRODUCT_NAME}.log"
@@ -164,7 +163,6 @@ else
 
     ## Build
     sudo apt -y install git libmicrohttpd-dev libssl-dev cmake build-essential libhwloc-dev && \
-    sudo mkdir -p ${XMR_CONFIG_DIR} && \
     sudo git clone https://github.com/fireice-uk/${PRODUCT_NAME}.git ${XMR_STAK_DIR} && \
     createDonateLevelH && \
     cd ${XMR_STAK_DIR} && \
@@ -207,6 +205,7 @@ else
     sudo perl -i -0pe "s/\"cpu_threads_conf\" :\s+null,/$BEST_CONF/g" ${XMR_CONFIG_FILE}
     sudo sed -i 's/"use_slow_memory" : *"[^"]*",/"use_slow_memory" : "no_mlck",/' ${XMR_CONFIG_FILE}
     sudo sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' ${XMR_CONFIG_FILE}
+    sudo sed -i 's/"daemon_mode" : false,/"daemon_mode" : true,/' ${XMR_CONFIG_FILE}
     sudo sed -i 's/"output_file" : "",/"output_file" : "'${XMR_LOG_FILE_ESCAPED}'",/' ${XMR_CONFIG_FILE}
     sudo sed -i 's/"pool_address" : *"[^"]*",/"pool_address" : "gulf.moneroocean.stream:10001",/' ${XMR_CONFIG_FILE}
     sudo sed -i 's/"wallet_address" : *"[^"]*",/"wallet_address" : "'${WALLET}'",/' ${XMR_CONFIG_FILE}
