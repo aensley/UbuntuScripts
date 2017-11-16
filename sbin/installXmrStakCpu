@@ -14,14 +14,10 @@ expectedXmrCpuHashRate() {
 
   # forked from: https://moneroocean.stream/miner/setup_moneroocean_miner.sh
 
-  # checking prerequisites
-
   if ! which lscpu >/dev/null; then
     echo "ERROR: This script requires \"lscpu\" utility to work correctly"
     return
   fi
-
-  # calculating port
 
   LSCPU=`lscpu`
   CPU_SOCKETS=`echo "$LSCPU" | grep "^Socket(s):" | cut -d':' -f2 | sed "s/^[ \t]*//"`
