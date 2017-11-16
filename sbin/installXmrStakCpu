@@ -222,6 +222,9 @@ else
     echo "You should also check the port used in \"pool_address\" the same way."
     echo "    Available ports: https://moneroocean.stream/#/ports"
     echo
+    echo "Once you have everything set the way you want it, start the service:"
+    echo "    sudo systemctl start ${PRODUCT_NAME}.service"
+    echo
     echoheader "Finished!"
 
   fi
