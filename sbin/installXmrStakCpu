@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 
+PRODUCT_NAME='xmr-stak-cpu'
 XMR_CONFIG_DIR='/opt/xmr-config/'
-XMR_CONFIG_FILE="${XMR_CONFIG_DIR}xmr-stak-cpu-config.txt"
-XMR_STAK_DIR='/opt/xmr-stak-cpu/'
-XMR_STAK_BIN="${XMR_STAK_DIR}bin/xmr-stak-cpu"
-XMR_LOG_FILE='/var/log/xmrStakCpu.log'
-XMR_LOG_FILE_ESCAPED='\/var\/log\/xmrStakCpu.log'
+XMR_CONFIG_FILE="${XMR_CONFIG_DIR}${PRODUCT_NAME}-config.txt"
+XMR_STAK_DIR="/opt/${PRODUCT_NAME}/"
+XMR_STAK_BIN="${XMR_STAK_DIR}bin/${PRODUCT_NAME}"
+XMR_LOG_FILE="/var/log/${PRODUCT_NAME}.log"
+XMR_LOG_FILE_ESCAPED="\\/var\\/log\\/${PRODUCT_NAME}.log"
 
 expectedXmrCpuHashRate() {
 
@@ -15,7 +16,7 @@ expectedXmrCpuHashRate() {
 
   if ! which lscpu >/dev/null; then
     echo "ERROR: This script requires \"lscpu\" utility to work correctly"
-    exit 1
+    return
   fi
 
   # calculating port
@@ -24,49 +25,49 @@ expectedXmrCpuHashRate() {
   CPU_SOCKETS=`echo "$LSCPU" | grep "^Socket(s):" | cut -d':' -f2 | sed "s/^[ \t]*//"`
   if [ -z $CPU_SOCKETS ]; then
     echo "ERROR: Can't get CPU sockets from lscpu output"
-    exit 1
+    return
   fi
   CPU_CORES_PER_SOCKET=`echo "$LSCPU" | grep "^Core(s) per socket:" | cut -d':' -f2 | sed "s/^[ \t]*//"`
   if [ -z $CPU_CORES_PER_SOCKET ]; then
     echo "ERROR: Can't get CPU cores per socket from lscpu output"
-    exit 1
+    return
   fi
   CPU_THREADS=`echo "$LSCPU" | grep "^CPU(s):" | cut -d':' -f2 | sed "s/^[ \t]*//"`
   if [ -z $CPU_THREADS ]; then
     echo "ERROR: Can't get CPU cores from lscpu output"
-    exit 1
+    return
   fi
   CPU_MHZ=`echo "$LSCPU" | grep "^CPU MHz:" | cut -d':' -f2 | sed "s/^[ \t]*//"`
   CPU_MHZ=${CPU_MHZ%.*}
   if [ -z $CPU_MHZ ]; then
     echo "ERROR: Can't get CPU MHz from lscpu output"
-    exit 1
+    return
   fi
   CPU_L1_CACHE=`echo "$LSCPU" | grep "^L1d cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
   if [ -z $CPU_L1_CACHE ]; then
     echo "ERROR: Can't get L1 CPU cache from lscpu output"
-    exit 1
+    return
   fi
   CPU_L2_CACHE=`echo "$LSCPU" | grep "^L2 cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
   if [ -z $CPU_L2_CACHE ]; then
     echo "ERROR: Can't get L2 CPU cache from lscpu output"
-    exit 1
+    return
   fi
   CPU_L3_CACHE=`echo "$LSCPU" | grep "^L3 cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
   if [ -z $CPU_L3_CACHE ]; then
     echo "ERROR: Can't get L3 CPU cache from lscpu output"
-    exit 1
+    return
   fi
 
   TOTAL_CACHE=$(( $CPU_THREADS*$CPU_L1_CACHE + $CPU_SOCKETS * ($CPU_CORES_PER_SOCKET*$CPU_L2_CACHE + $CPU_L3_CACHE)))
   if [ -z $TOTAL_CACHE ]; then
     echo "ERROR: Can't compute total cache"
-    exit 1
+    return
   fi
   EXP_MONERO_HASHRATE=$(( ($CPU_THREADS < $TOTAL_CACHE / 2048 ? $CPU_THREADS : $TOTAL_CACHE / 2048) * ($CPU_MHZ * 20 / 1000) ))
   if [ -z $EXP_MONERO_HASHRATE ]; then
     echo "ERROR: Can't compute projected Monero hashrate"
-    exit 1
+    return
   fi
 
   echo "CPU Threads:        $CPU_THREADS"
@@ -82,10 +83,13 @@ createDonateLevelH() {
 
 constexpr double fDevDonationLevel = 0.0;
 EOL
+
+  sudo mv -f /tmp/donate-level.h ${XMR_STAK_DIR}donate-level.h
+  sudo chown root:root ${XMR_STAK_DIR}donate-level.h
 }
 
 createService() {
-  cat >/tmp/xmr-stak-cpu.service <<EOL
+  cat >/tmp/${PRODUCT_NAME}.service <<EOL
 [Unit]
 Description=XMR Stak CPU Mining service
 
@@ -96,10 +100,13 @@ Nice=10
 [Install]
 WantedBy=multi-user.target
 EOL
+
+  sudo mv /tmp/${PRODUCT_NAME}.service /etc/systemd/system/${PRODUCT_NAME}.service
+  sudo chown root:root /etc/systemd/system/${PRODUCT_NAME}.service
 }
 
 createLogRotateFile() {
-  cat >/tmp/xmrStakCpu <<EOL
+  cat >/tmp/${PRODUCT_NAME} <<EOL
 ${XMR_LOG_FILE} {
         weekly
         rotate 4
@@ -109,17 +116,20 @@ ${XMR_LOG_FILE} {
         notifempty
 }
 EOL
+
+  sudo mv /tmp/${PRODUCT_NAME} /etc/logrotate.d/${PRODUCT_NAME}
+  sudo chown root:root /etc/logrotate.d/${PRODUCT_NAME}
 }
 
 if [ "$1" = "--uninstall" ]; then
 
   # Remove xmr-stak-cpu
-  echoheader "Uninstalling xmr-stak-cpu"
-  sudo systemctl stop xmr-stak-cpu.service
-  sudo systemctl disable xmr-stak-cpu.service
-  sudo rm -f /etc/systemd/system/xmr-stak-cpu.service
+  echoheader "Uninstalling ${PRODUCT_NAME}"
+  sudo systemctl stop ${PRODUCT_NAME}.service
+  sudo systemctl disable ${PRODUCT_NAME}.service
+  sudo rm -f /etc/systemd/system/${PRODUCT_NAME}.service
   sudo systemctl daemon-reload
-  sudo rm -f /etc/logrotate.d/xmrStakCpu
+  sudo rm -f /etc/logrotate.d/${PRODUCT_NAME}
   sudo rm -f ${XMR_LOG_FILE}
   sudo rm -rf ${XMR_STAK_DIR}
   sudo rm -f ${XMR_CONFIG_FILE}
@@ -132,33 +142,31 @@ else
 
   if [ -d "${XMR_STAK_DIR}" ]; then
 
-    # Upgrade xmr-stak-cpu
-    echoheader "Upgrading xmr-stak-cpu"
-    sudo systemctl stop xmr-stak-cpu.service
+    # Upgrade xmr-stak-cpu from latest upstream source while keeping current configuration.
+    echoheader "Upgrading ${PRODUCT_NAME}"
+    sudo systemctl stop ${PRODUCT_NAME}.service
     cd ${XMR_STAK_DIR} && \
-    sudo git clean -fdx && \
+    sudo git clean -fdx --quiet && \
+    sudo git checkout -f --quiet && \
     sudo git pull && \
     createDonateLevelH && \
-    sudo mv -f /tmp/donate-level.h ${XMR_STAK_DIR}donate-level.h && \
     sudo cmake -DMICROHTTPD_ENABLE=OFF -DOpenSSL_ENABLE=OFF -DHWLOC_ENABLE=ON . && \
     sudo make && \
-    sudo systemctl start xmr-stak-cpu.service
+    sudo systemctl start ${PRODUCT_NAME}.service
     echoheader "Finished!"
 
   else
 
     # Install xmr-stak-cpu
-    echoheader "Installing xmr-stak-cpu"
+    echoheader "Installing ${PRODUCT_NAME}"
     expectedXmrCpuHashRate
     echoheader
 
     ## Build
     sudo apt -y install git libmicrohttpd-dev libssl-dev cmake build-essential libhwloc-dev && \
     sudo mkdir -p ${XMR_CONFIG_DIR} && \
-    sudo git clone https://github.com/fireice-uk/xmr-stak-cpu.git ${XMR_STAK_DIR} && \
+    sudo git clone https://github.com/fireice-uk/${PRODUCT_NAME}.git ${XMR_STAK_DIR} && \
     createDonateLevelH && \
-    sudo mv -f /tmp/donate-level.h ${XMR_STAK_DIR}donate-level.h && \
-    sudo chown root:root ${XMR_STAK_DIR}donate-level.h && \
     cd ${XMR_STAK_DIR} && \
     sudo cmake -DMICROHTTPD_ENABLE=OFF -DOpenSSL_ENABLE=OFF -DHWLOC_ENABLE=ON . && \
     sudo make
@@ -170,17 +178,13 @@ else
     echo "* hard memlock 262144" | sudo tee -a /etc/security/limits.conf
 
     ## Service
-    createService && \
-    sudo mv /tmp/xmr-stak-cpu.service /etc/systemd/system/xmr-stak-cpu.service
-    sudo chown root:root /etc/systemd/system/xmr-stak-cpu.service && \
+    createService
     sudo systemctl daemon-reload
-    sudo systemctl enable xmr-stak-cpu.service
+    sudo systemctl enable ${PRODUCT_NAME}.service
 
     ## Log file
     sudo touch ${XMR_LOG_FILE}
-    createLogRotateFile && \
-    sudo mv /tmp/xmrStakCpu /etc/logrotate.d/xmrStakCpu
-    sudo chown root:root /etc/logrotate.d/xmrStakCpu && \
+    createLogRotateFile
 
     ## xmr-stak-cpu configuration
     sudo cp ${XMR_STAK_DIR}config.txt ${XMR_CONFIG_FILE}
@@ -209,7 +213,7 @@ else
     sudo sed -i 's/"pool_password" : *"[^"]*",/"pool_password" : "'${PASSWORD}'",/' ${XMR_CONFIG_FILE}
 
     echo
-    echo "This is the best configuration xmr-stak-cpu"
+    echo "This is the best configuration ${PRODUCT_NAME}"
     echo "has automatically detected for this system:"
     echo "$BEST_CONF"
     echo
