@@ -6,6 +6,9 @@ XMR_STAK_DIR="/opt/${PRODUCT_NAME}/"
 XMR_STAK_BIN="${XMR_STAK_DIR}bin/${PRODUCT_NAME}"
 XMR_LOG_FILE="/var/log/${PRODUCT_NAME}.log"
 XMR_LOG_FILE_ESCAPED="\\/var\\/log\\/${PRODUCT_NAME}.log"
+WALLET="$1"
+PASSWORD="$2"
+BEST_CONF=""
 
 expectedXmrCpuHashRate() {
 
@@ -120,9 +123,22 @@ EOL
   sudo chown root:root /etc/logrotate.d/${PRODUCT_NAME}
 }
 
+createConfigFile() {
+  sudo cp ${XMR_STAK_DIR}config.txt ${XMR_CONFIG_FILE}
+  BEST_CONF=`sudo ${XMR_STAK_BIN} ${XMR_CONFIG_FILE} | sed -n "/BEGIN/, /END/ p" | grep -v '\*'`
+  sudo perl -i -0pe "s/\"cpu_threads_conf\" :\s+null,/$BEST_CONF/g" ${XMR_CONFIG_FILE}
+  sudo sed -i 's/"use_slow_memory" : *"[^"]*",/"use_slow_memory" : "no_mlck",/' ${XMR_CONFIG_FILE}
+  sudo sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' ${XMR_CONFIG_FILE}
+  sudo sed -i 's/"daemon_mode" : false,/"daemon_mode" : true,/' ${XMR_CONFIG_FILE}
+  sudo sed -i 's/"output_file" : "",/"output_file" : "'${XMR_LOG_FILE_ESCAPED}'",/' ${XMR_CONFIG_FILE}
+  sudo sed -i 's/"pool_address" : *"[^"]*",/"pool_address" : "gulf.moneroocean.stream:10001",/' ${XMR_CONFIG_FILE}
+  sudo sed -i 's/"wallet_address" : *"[^"]*",/"wallet_address" : "'${WALLET}'",/' ${XMR_CONFIG_FILE}
+  sudo sed -i 's/"pool_password" : *"[^"]*",/"pool_password" : "'${PASSWORD}'",/' ${XMR_CONFIG_FILE}
+}
+
 if [ "$1" = "--uninstall" ]; then
 
-  # Remove xmr-stak-cpu
+  # Remove
   echoheader "Uninstalling ${PRODUCT_NAME}"
   sudo systemctl stop ${PRODUCT_NAME}.service
   sudo systemctl disable ${PRODUCT_NAME}.service
@@ -141,7 +157,7 @@ else
 
   if [ -d "${XMR_STAK_DIR}" ]; then
 
-    # Upgrade xmr-stak-cpu from latest upstream source while keeping current configuration.
+    # Upgrade from latest upstream source while keeping current configuration.
     echoheader "Upgrading ${PRODUCT_NAME}"
     sudo systemctl stop ${PRODUCT_NAME}.service
     cd ${XMR_STAK_DIR} && \
@@ -156,7 +172,7 @@ else
 
   else
 
-    # Install xmr-stak-cpu
+    # Install
     echoheader "Installing ${PRODUCT_NAME}"
     expectedXmrCpuHashRate
     echoheader
@@ -184,32 +200,20 @@ else
     sudo touch ${XMR_LOG_FILE}
     createLogRotateFile
 
-    ## xmr-stak-cpu configuration
-    sudo cp ${XMR_STAK_DIR}config.txt ${XMR_CONFIG_FILE}
-    BEST_CONF=`sudo ${XMR_STAK_BIN} ${XMR_CONFIG_FILE} | sed -n "/BEGIN/, /END/ p" | grep -v '\*'`
-
-    WALLET="$1"
+    ## Configuration
     while [ -z "$WALLET" ]; do
       echo
       echo -n "Enter wallet address: "
       read -e WALLET
     done
 
-    PASSWORD="$2"
     while [ -z "$PASSWORD" ]; do
       echo
       echo -n "Enter password (MinerID:EmailAddress): "
       read -e PASSWORD
     done
 
-    sudo perl -i -0pe "s/\"cpu_threads_conf\" :\s+null,/$BEST_CONF/g" ${XMR_CONFIG_FILE}
-    sudo sed -i 's/"use_slow_memory" : *"[^"]*",/"use_slow_memory" : "no_mlck",/' ${XMR_CONFIG_FILE}
-    sudo sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' ${XMR_CONFIG_FILE}
-    sudo sed -i 's/"daemon_mode" : false,/"daemon_mode" : true,/' ${XMR_CONFIG_FILE}
-    sudo sed -i 's/"output_file" : "",/"output_file" : "'${XMR_LOG_FILE_ESCAPED}'",/' ${XMR_CONFIG_FILE}
-    sudo sed -i 's/"pool_address" : *"[^"]*",/"pool_address" : "gulf.moneroocean.stream:10001",/' ${XMR_CONFIG_FILE}
-    sudo sed -i 's/"wallet_address" : *"[^"]*",/"wallet_address" : "'${WALLET}'",/' ${XMR_CONFIG_FILE}
-    sudo sed -i 's/"pool_password" : *"[^"]*",/"pool_password" : "'${PASSWORD}'",/' ${XMR_CONFIG_FILE}
+    createConfigFile
 
     echo
     echo "This is the best configuration ${PRODUCT_NAME}"
