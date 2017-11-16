@@ -1,0 +1,189 @@
+#!/usr/bin/env bash
+
+PRODUCT_NAME='xmrig-nvidia'
+XMRIG_CONFIG_FILE="/etc/${PRODUCT_NAME}.conf"
+XMRIG_DIR="/opt/${PRODUCT_NAME}/"
+XMRIG_BIN="${XMRIG_DIR}build/${PRODUCT_NAME}"
+XMRIG_LOG_FILE="/var/log/${PRODUCT_NAME}.log"
+WALLET="$1"
+PASSWORD="$2"
+
+createDonateH() {
+  cat >/tmp/donate.h <<EOL
+#ifndef __DONATE_H__
+#define __DONATE_H__
+constexpr const int kDonateLevel = 0;
+#endif /* __DONATE_H__ */
+EOL
+
+  sudo mv -f /tmp/donate.h ${XMRIG_DIR}src/donate.h
+  sudo chown root:root ${XMRIG_DIR}src/donate.h
+}
+
+createService() {
+  cat >/tmp/${PRODUCT_NAME}.service <<EOL
+[Unit]
+Description=Xmrig Nvidia Mining service
+
+[Service]
+ExecStart=${XMRIG_BIN} --config=${XMRIG_CONFIG_FILE}
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+  sudo mv /tmp/${PRODUCT_NAME}.service /etc/systemd/system/${PRODUCT_NAME}.service
+  sudo chown root:root /etc/systemd/system/${PRODUCT_NAME}.service
+}
+
+createLogRotateFile() {
+  cat >/tmp/${PRODUCT_NAME} <<EOL
+${XMRIG_LOG_FILE} {
+        weekly
+        rotate 4
+        missingok
+        create 644 root root
+        compress
+        notifempty
+}
+EOL
+
+  sudo mv /tmp/${PRODUCT_NAME} /etc/logrotate.d/${PRODUCT_NAME}
+  sudo chown root:root /etc/logrotate.d/${PRODUCT_NAME}
+}
+
+createConfigFile() {
+  cat >/tmp/${PRODUCT_NAME}.conf <<EOL
+{
+    "algo": "cryptonight",
+    "background": false,
+    "colors": false,
+    "donate-level": 0,
+    "log-file": "${XMRIG_LOG_FILE}",
+    "print-time": 60,
+    "retries": 5,
+    "retry-pause": 5,
+    "syslog": false,
+    "threads": [
+        {
+            "index": 0,
+            "threads": 44,
+            "blocks": 12,
+            "bfactor": 11,
+            "bsleep": 100,
+            "affine_to_cpu": false
+        }
+    ],
+    "pools": [
+        {
+            "url": "gulf.moneroocean.stream:10004",
+            "user": "${WALLET}",
+            "pass": "${PASSWORD}",
+            "keepalive": true,
+            "nicehash": false
+        }
+    ],
+    "api": {
+        "port": 0,
+        "access-token": null,
+        "worker-id": null
+    }
+}
+EOL
+
+  sudo mv /tmp/${PRODUCT_NAME}.conf ${XMRIG_CONFIG_FILE}
+  sudo chown root:root ${XMRIG_CONFIG_FILE}
+}
+
+if [ "$1" = "--uninstall" ]; then
+
+  # Remove
+  echoheader "Uninstalling ${PRODUCT_NAME}"
+  sudo systemctl stop ${PRODUCT_NAME}.service
+  sudo systemctl disable ${PRODUCT_NAME}.service
+  sudo rm -f /etc/systemd/system/${PRODUCT_NAME}.service
+  sudo systemctl daemon-reload
+  sudo rm -f /etc/logrotate.d/${PRODUCT_NAME}
+  sudo rm -f ${XMRIG_LOG_FILE}
+  sudo rm -rf ${XMRIG_DIR}
+  sudo rm -f ${XMRIG_CONFIG_FILE}
+  echoheader "Finished!"
+
+else
+
+  if [ -d "${XMRIG_DIR}" ]; then
+
+    # Upgrade from latest upstream source while keeping current configuration.
+    echoheader "Upgrading ${PRODUCT_NAME}"
+    sudo systemctl stop ${PRODUCT_NAME}.service
+    cd ${XMRIG_DIR} && \
+    sudo git clean -fdx --quiet && \
+    sudo git checkout -f --quiet && \
+    sudo git pull && \
+    createDonateH && \
+    cd ${XMRIG_DIR} && \
+    grep -rl --include="*.cpp" "std::isnormal" ${XMRIG_DIR} | sudo xargs sed -i 's/std::isnormal/isnormal/g' && \
+    sudo mkdir build && \
+    cd build && \
+    sudo cmake .. -DCUDA_ARCH=30 -DCMAKE_C_COMPILER=gcc-5 -DCMAKE_CXX_COMPILER=g++-5 && \
+    sudo make && \
+    sudo systemctl start ${PRODUCT_NAME}.service
+    sudo systemctl --no-pager --full status ${PRODUCT_NAME}.service
+    echoheader "Finished!"
+
+  else
+
+    # Install
+    echoheader "Installing ${PRODUCT_NAME}"
+
+    ## Build
+    sudo apt install git build-essential cmake libuv1-dev nvidia-cuda-dev nvidia-cuda-toolkit gcc-5 g++-5 libmicrohttpd-dev && \
+    sudo git clone https://github.com/xmrig/${PRODUCT_NAME}.git ${XMRIG_DIR} && \
+    createDonateH && \
+    cd ${XMRIG_DIR} && \
+    grep -rl --include="*.cpp" "std::isnormal" ${XMRIG_DIR} | sudo xargs sed -i 's/std::isnormal/isnormal/g' && \
+    sudo mkdir build && \
+    cd build && \
+    sudo cmake .. -DCUDA_ARCH=30 -DCMAKE_C_COMPILER=gcc-5 -DCMAKE_CXX_COMPILER=g++-5 && \
+    sudo make
+
+    ## Service
+    createService
+    sudo systemctl daemon-reload
+    sudo systemctl enable ${PRODUCT_NAME}.service
+
+    ## Log file
+    sudo touch ${XMRIG_LOG_FILE}
+    createLogRotateFile
+
+    ## Configuration
+    while [ -z "$WALLET" ]; do
+      echo
+      echo -n "Enter wallet address: "
+      read -e WALLET
+    done
+
+    while [ -z "$PASSWORD" ]; do
+      echo
+      echo -n "Enter password (MinerID:EmailAddress): "
+      read -e PASSWORD
+    done
+
+    createConfigFile
+    sudo systemctl start ${PRODUCT_NAME}.service
+    sudo systemctl --no-pager --full status ${PRODUCT_NAME}.service
+
+    echo
+    echo "You should check the port used in \"url\" to make sure it's correct:"
+    echo "    sudo nano ${XMRIG_CONFIG_FILE}"
+    echo
+    echo "    Available ports: https://moneroocean.stream/#/ports"
+    echo
+    echo "To make your changes effective, restart the service:"
+    echo "    sudo systemctl restart ${PRODUCT_NAME}.service"
+    echo
+    echoheader "Finished!"
+
+  fi
+fi
