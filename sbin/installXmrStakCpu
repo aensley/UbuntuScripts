@@ -17,7 +17,7 @@ URL="gulf.moneroocean.stream:10001"
 BEST_CONF=""
 
 getArgs(){
-  while getopts ":hrfw:p:u:" opt; do
+  while getopts ":hrfkw:p:u:" opt; do
     case ${opt} in
       h )
         echo "Usage: ${0##*/} [-w Wallet address] [-p Password] [-u Pool URL]"
