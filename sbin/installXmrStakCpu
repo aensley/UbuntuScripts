@@ -1,14 +1,74 @@
 #!/usr/bin/env bash
 
 PRODUCT_NAME='xmr-stak-cpu'
-XMR_CONFIG_FILE="/etc/${PRODUCT_NAME}.conf"
-XMR_STAK_DIR="/opt/${PRODUCT_NAME}/"
-XMR_STAK_BIN="${XMR_STAK_DIR}bin/${PRODUCT_NAME}"
-XMR_LOG_FILE="/var/log/${PRODUCT_NAME}.log"
-XMR_LOG_FILE_ESCAPED="\\/var\\/log\\/${PRODUCT_NAME}.log"
-WALLET="$1"
-PASSWORD="$2"
+CONFIG_FILE="/etc/${PRODUCT_NAME}.conf"
+INSTALL_DIR="/opt/${PRODUCT_NAME}/"
+EXECUTABLE="${INSTALL_DIR}bin/${PRODUCT_NAME}"
+LOG_FILE="/var/log/${PRODUCT_NAME}.log"
+LOG_FILE_ESCAPED="\\/var\\/log\\/${PRODUCT_NAME}.log"
+TASK="install"
+if [ -d "${INSTALL_DIR}" ]; then
+  TASK="upgrade"
+fi
+RESET_CONFIG=""
+WALLET=""
+PASSWORD=""
+URL="gulf.moneroocean.stream:10001"
 BEST_CONF=""
+
+getArgs(){
+  while getopts ":hrfw:p:u:" opt; do
+    case ${opt} in
+      h )
+        echo "Usage: ${0##*/} [-w Wallet address] [-p Password] [-u Pool URL]"
+        echo
+        echo "General Options:"
+        echo "  -r    Remove/Uninstall"
+        echo "  -f    Remove/reset configuration file (always off for upgrades)"
+        echo "  -k    Keep existing configuration file (always on for upgrades)"
+        echo
+        echo "Installation options:"
+        echo "  -w    Wallet address"
+        echo "  -p    Password"
+        echo "  -u    Pool URL"
+        echo
+        exit
+        ;;
+      r )
+        if [ -d "${INSTALL_DIR}" ]; then
+          TASK="uninstall"
+        else
+          echo "Nothing to uninstall" 1>&2
+          exit 1
+        fi
+        ;;
+      f )
+        RESET_CONFIG="reset"
+        ;;
+      k )
+        RESET_CONFIG="keep"
+        ;;
+      w )
+        WALLET=$OPTARG
+        ;;
+      p )
+        PASSWORD=$OPTARG
+        ;;
+      u )
+        URL=$OPTARG
+        ;;
+      \? )
+        echo "Invalid option: $OPTARG" 1>&2
+        exit 1
+        ;;
+      : )
+        echo "Invalid option: $OPTARG requires an argument" 1>&2
+        exit 1
+        ;;
+    esac
+  done
+  shift $((OPTIND -1))
+}
 
 expectedXmrCpuHashRate() {
 
@@ -82,8 +142,8 @@ createDonateLevelH() {
 constexpr double fDevDonationLevel = 0.0;
 EOL
 
-  sudo mv -f /tmp/donate-level.h ${XMR_STAK_DIR}donate-level.h
-  sudo chown root:root ${XMR_STAK_DIR}donate-level.h
+  sudo mv -f /tmp/donate-level.h ${INSTALL_DIR}donate-level.h
+  sudo chown root:root ${INSTALL_DIR}donate-level.h
 }
 
 createService() {
@@ -92,7 +152,7 @@ createService() {
 Description=XMR Stak CPU Mining service
 
 [Service]
-ExecStart=${XMR_STAK_BIN} ${XMR_CONFIG_FILE}
+ExecStart=${EXECUTABLE} ${CONFIG_FILE}
 Nice=10
 
 [Install]
@@ -105,7 +165,7 @@ EOL
 
 createLogRotateFile() {
   cat >/tmp/${PRODUCT_NAME} <<EOL
-${XMR_LOG_FILE} {
+${LOG_FILE} {
         weekly
         rotate 4
         missingok
@@ -120,84 +180,107 @@ EOL
 }
 
 createConfigFile() {
-  sudo cp ${XMR_STAK_DIR}config.txt ${XMR_CONFIG_FILE}
-  BEST_CONF=`sudo ${XMR_STAK_BIN} ${XMR_CONFIG_FILE} | sed -n "/BEGIN/, /END/ p" | grep -v '\*'`
-  sudo perl -i -0pe "s/\"cpu_threads_conf\" :\s+null,/$BEST_CONF/g" ${XMR_CONFIG_FILE}
-  sudo sed -i 's/"use_slow_memory" : *"[^"]*",/"use_slow_memory" : "no_mlck",/' ${XMR_CONFIG_FILE}
-  sudo sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' ${XMR_CONFIG_FILE}
-  sudo sed -i 's/"daemon_mode" : false,/"daemon_mode" : true,/' ${XMR_CONFIG_FILE}
-  sudo sed -i 's/"output_file" : "",/"output_file" : "'${XMR_LOG_FILE_ESCAPED}'",/' ${XMR_CONFIG_FILE}
-  sudo sed -i 's/"pool_address" : *"[^"]*",/"pool_address" : "gulf.moneroocean.stream:10001",/' ${XMR_CONFIG_FILE}
-  sudo sed -i 's/"wallet_address" : *"[^"]*",/"wallet_address" : "'${WALLET}'",/' ${XMR_CONFIG_FILE}
-  sudo sed -i 's/"pool_password" : *"[^"]*",/"pool_password" : "'${PASSWORD}'",/' ${XMR_CONFIG_FILE}
+  sudo cp ${INSTALL_DIR}config.txt ${CONFIG_FILE}
+  BEST_CONF=`sudo ${EXECUTABLE} ${CONFIG_FILE} | sed -n "/BEGIN/, /END/ p" | grep -v '\*'`
+  sudo perl -i -0pe "s/\"cpu_threads_conf\" :\s+null,/$BEST_CONF/g" ${CONFIG_FILE}
+  sudo sed -i 's/"use_slow_memory" : *"[^"]*",/"use_slow_memory" : "no_mlck",/' ${CONFIG_FILE}
+  sudo sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' ${CONFIG_FILE}
+  sudo sed -i 's/"daemon_mode" : false,/"daemon_mode" : true,/' ${CONFIG_FILE}
+  sudo sed -i 's/"output_file" : "",/"output_file" : "'${LOG_FILE_ESCAPED}'",/' ${CONFIG_FILE}
+  sudo sed -i 's/"pool_address" : *"[^"]*",/"pool_address" : "'${URL}'",/' ${CONFIG_FILE}
+  sudo sed -i 's/"wallet_address" : *"[^"]*",/"wallet_address" : "'${WALLET}'",/' ${CONFIG_FILE}
+  sudo sed -i 's/"pool_password" : *"[^"]*",/"pool_password" : "'${PASSWORD}'",/' ${CONFIG_FILE}
 }
 
-if [ "$1" = "--uninstall" ]; then
-
-  # Remove
+uninstall() {
   echoheader "Uninstalling ${PRODUCT_NAME}"
   sudo systemctl stop ${PRODUCT_NAME}.service
   sudo systemctl disable ${PRODUCT_NAME}.service
   sudo rm -f /etc/systemd/system/${PRODUCT_NAME}.service
   sudo systemctl daemon-reload
   sudo rm -f /etc/logrotate.d/${PRODUCT_NAME}
-  sudo rm -f ${XMR_LOG_FILE}
-  sudo rm -rf ${XMR_STAK_DIR}
-  sudo rm -f ${XMR_CONFIG_FILE}
+  sudo rm -f ${LOG_FILE}
+  sudo rm -rf ${INSTALL_DIR}
+  if [ -z "$RESET_CONFIG" ]; then
+    echo -n "Remove configuration file? (y/N): "
+    read -e removeConfig
+    if [ "$removeConfig" = "y" ]; then
+      RESET_CONFIG="reset"
+    fi
+  fi
+  if [ "$RESET_CONFIG" = "reset" ]; then
+    sudo rm -f ${CONFIG_FILE}
+  fi
   sudo sed -i 's/vm.nr_hugepages=128//' /etc/sysctl.conf
   sudo sed -i 's/* soft memlock 262144//' /etc/security/limits.conf
   sudo sed -i 's/* hard memlock 262144//' /etc/security/limits.conf
   echoheader "Finished!"
+}
 
-else
+upgrade() {
+  # Upgrade from latest upstream source while keeping current configuration.
+  echoheader "Upgrading ${PRODUCT_NAME}"
+  sudo systemctl stop ${PRODUCT_NAME}.service
+  cd ${INSTALL_DIR} && \
+  sudo git clean -fdx --quiet && \
+  sudo git checkout -f --quiet && \
+  sudo git pull && \
+  createDonateLevelH && \
+  sudo cmake -DMICROHTTPD_ENABLE=OFF -DOpenSSL_ENABLE=OFF -DHWLOC_ENABLE=ON . && \
+  sudo make && \
+  sudo systemctl start ${PRODUCT_NAME}.service
+  sudo systemctl --no-pager --full status ${PRODUCT_NAME}.service
+  echoheader "Finished!"
+}
 
-  if [ -d "${XMR_STAK_DIR}" ]; then
+install() {
+  # Install
+  echoheader "Installing ${PRODUCT_NAME}"
+  expectedXmrCpuHashRate
+  echoheader
 
-    # Upgrade from latest upstream source while keeping current configuration.
-    echoheader "Upgrading ${PRODUCT_NAME}"
-    sudo systemctl stop ${PRODUCT_NAME}.service
-    cd ${XMR_STAK_DIR} && \
-    sudo git clean -fdx --quiet && \
-    sudo git checkout -f --quiet && \
-    sudo git pull && \
-    createDonateLevelH && \
-    sudo cmake -DMICROHTTPD_ENABLE=OFF -DOpenSSL_ENABLE=OFF -DHWLOC_ENABLE=ON . && \
-    sudo make && \
-    sudo systemctl start ${PRODUCT_NAME}.service
-    sudo systemctl --no-pager --full status ${PRODUCT_NAME}.service
-    echoheader "Finished!"
+  ## Build
+  sudo apt -y install git libmicrohttpd-dev libssl-dev cmake build-essential libhwloc-dev && \
+  sudo git clone https://github.com/fireice-uk/${PRODUCT_NAME}.git ${INSTALL_DIR} && \
+  createDonateLevelH && \
+  cd ${INSTALL_DIR} && \
+  sudo cmake -DMICROHTTPD_ENABLE=OFF -DOpenSSL_ENABLE=OFF -DHWLOC_ENABLE=ON . && \
+  sudo make
 
+  ## System Configuration
+  sudo sysctl -w vm.nr_hugepages=128
+  sudo sed -i 's/vm.nr_hugepages=128//' /etc/sysctl.conf
+  sudo sed -i 's/* soft memlock 262144//' /etc/security/limits.conf
+  sudo sed -i 's/* hard memlock 262144//' /etc/security/limits.conf
+  echo "vm.nr_hugepages=128" | sudo tee -a /etc/sysctl.conf
+  echo "* soft memlock 262144" | sudo tee -a /etc/security/limits.conf
+  echo "* hard memlock 262144" | sudo tee -a /etc/security/limits.conf
+
+  ## Service
+  createService
+  sudo systemctl daemon-reload
+  sudo systemctl enable ${PRODUCT_NAME}.service
+
+  ## Log file
+  sudo touch ${LOG_FILE}
+  createLogRotateFile
+
+  ## Configuration
+  if [ -f ${CONFIG_FILE} ]; then
+    if [ -z "$RESET_CONFIG" ]; then
+      echo -n "Existing configuration found. Overwrite with default config? (y/N): "
+      read -e removeConfig
+      if [ "$removeConfig" = "y" ]; then
+        RESET_CONFIG="reset"
+      else
+        RESET_CONFIG="keep"
+      fi
+    fi
   else
+    RESET_CONFIG="reset"
+  fi
 
-    # Install
-    echoheader "Installing ${PRODUCT_NAME}"
-    expectedXmrCpuHashRate
-    echoheader
-
-    ## Build
-    sudo apt -y install git libmicrohttpd-dev libssl-dev cmake build-essential libhwloc-dev && \
-    sudo git clone https://github.com/fireice-uk/${PRODUCT_NAME}.git ${XMR_STAK_DIR} && \
-    createDonateLevelH && \
-    cd ${XMR_STAK_DIR} && \
-    sudo cmake -DMICROHTTPD_ENABLE=OFF -DOpenSSL_ENABLE=OFF -DHWLOC_ENABLE=ON . && \
-    sudo make
-
-    ## System Configuration
-    sudo sysctl -w vm.nr_hugepages=128
-    echo "vm.nr_hugepages=128" | sudo tee -a /etc/sysctl.conf
-    echo "* soft memlock 262144" | sudo tee -a /etc/security/limits.conf
-    echo "* hard memlock 262144" | sudo tee -a /etc/security/limits.conf
-
-    ## Service
-    createService
-    sudo systemctl daemon-reload
-    sudo systemctl enable ${PRODUCT_NAME}.service
-
-    ## Log file
-    sudo touch ${XMR_LOG_FILE}
-    createLogRotateFile
-
-    ## Configuration
+  if [ "$RESET_CONFIG" = "reset" ]; then
     while [ -z "$WALLET" ]; do
       echo
       echo -n "Enter wallet address: "
@@ -211,24 +294,30 @@ else
     done
 
     createConfigFile
-    sudo systemctl start ${PRODUCT_NAME}.service
-    sudo systemctl --no-pager --full status ${PRODUCT_NAME}.service
-
-    echo
-    echo "This is the best configuration ${PRODUCT_NAME}"
-    echo "has automatically detected for this system:"
-    echo "$BEST_CONF"
-    echo
-    echo "If you need to change this, be sure to edit the config file:"
-    echo "    sudo nano ${XMR_CONFIG_FILE}"
-    echo
-    echo "You should also check the port used in \"pool_address\" the same way."
-    echo "    Available ports: https://moneroocean.stream/#/ports"
-    echo
-    echo "To make your changes effective, restart the service:"
-    echo "    sudo systemctl restart ${PRODUCT_NAME}.service"
-    echo
-    echoheader "Finished!"
-
   fi
-fi
+
+  sudo systemctl start ${PRODUCT_NAME}.service
+  sudo systemctl --no-pager --full status ${PRODUCT_NAME}.service
+
+  ## Finished
+  echo
+  echo "This is the best configuration ${PRODUCT_NAME}"
+  echo "has automatically detected for this system:"
+  echo "$BEST_CONF"
+  echo
+  echo "If you need to change this, be sure to edit the config file:"
+  echo "    sudo nano ${CONFIG_FILE}"
+  echo
+  echo "You should also check the port used in \"pool_address\" the same way."
+  echo "    Available ports: https://moneroocean.stream/#/ports"
+  echo
+  echo "To make your changes effective, restart the service:"
+  echo "    sudo systemctl restart ${PRODUCT_NAME}.service"
+  echo
+  echoheader "Finished!"
+}
+
+getArgs $@
+
+# Perform the requested task.
+eval "${TASK}"
