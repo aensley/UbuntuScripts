@@ -16,22 +16,26 @@ PASSWORD=""
 URL="gulf.moneroocean.stream:10001"
 BEST_CONF=""
 
+usage() {
+  echo "Usage: ${0##*/} [-w Wallet address] [-p Password] [-u Pool URL]"
+  echo
+  echo "General Options:"
+  echo "  -r    Remove/Uninstall"
+  echo "  -f    Remove/reset configuration file (always off for upgrades)"
+  echo "  -k    Keep existing configuration file (always on for upgrades)"
+  echo
+  echo "Installation options:"
+  echo "  -w    Wallet address"
+  echo "  -p    Password"
+  echo "  -u    Pool URL"
+  echo
+}
+
 getArgs(){
   while getopts ":hrfkw:p:u:" opt; do
     case ${opt} in
       h )
-        echo "Usage: ${0##*/} [-w Wallet address] [-p Password] [-u Pool URL]"
-        echo
-        echo "General Options:"
-        echo "  -r    Remove/Uninstall"
-        echo "  -f    Remove/reset configuration file (always off for upgrades)"
-        echo "  -k    Keep existing configuration file (always on for upgrades)"
-        echo
-        echo "Installation options:"
-        echo "  -w    Wallet address"
-        echo "  -p    Password"
-        echo "  -u    Pool URL"
-        echo
+        usage
         exit
         ;;
       r )
@@ -58,11 +62,15 @@ getArgs(){
         URL=$OPTARG
         ;;
       \? )
-        echo "Invalid option: $OPTARG" 1>&2
+        echo "ERROR: Invalid option: $OPTARG" 1>&2
+        echo
+        usage
         exit 1
         ;;
       : )
-        echo "Invalid option: $OPTARG requires an argument" 1>&2
+        echo "ERROR: Invalid option: $OPTARG requires a value" 1>&2
+        echo
+        usage
         exit 1
         ;;
     esac
