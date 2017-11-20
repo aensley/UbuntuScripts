@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# Reports the named HDD's temperature.
+# Usage: hddTemp sda
+
+TP=`/usr/sbin/smartctl -A /dev/$1 | grep Temp | awk -F " " '{printf "%d",$10}'`
+
+if [ -z $2 ]; then
+  echo $TP
+fi
+
+exit $TP
