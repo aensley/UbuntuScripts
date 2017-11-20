@@ -93,6 +93,10 @@ installEnpass() {
   toInstall="${toInstall} enpass"
 }
 
+installGeditPlugins() {
+  toInstall="${toInstall} gedit-plugins gedit-developer-plugins gedit-plugin-text-size gedit-source-code-browser-plugin"
+}
+
 installJre() {
   toInstall="${toInstall} openjdk-9-jre"
 }
@@ -146,7 +150,7 @@ removeChoices=$(
 )
 
 installChoices=$(
-  whiptail --title "Select Software to Install" --checklist "Select Software to Install" 20 50 14 \
+  whiptail --title "Select Software to Install" --checklist "Select Software to Install" 22 50 16 \
     Tweaks           "Gnome Tweak Tool"  on \
     GnomeExtensions  "Gnome Extensions"  on \
     Vlc              "VLC"               on \
@@ -156,6 +160,7 @@ installChoices=$(
     LibreOfficeFresh "LibreOffice Fresh" on \
     Gimp             "GIMP"              off \
     Enpass           "Enpass"            off \
+    GeditPlugins     "Gedit Plugins"     off \
     Jre              "JRE"               off \
     Jdk              "JDK"               off \
     Php              "PHP"               off \
