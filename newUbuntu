@@ -150,9 +150,10 @@ removeChoices=$(
 )
 
 installChoices=$(
-  whiptail --title "Select Software to Install" --checklist "Select Software to Install" 22 50 16 \
+  whiptail --title "Select Software to Install" --checklist "Select Software to Install" 23 50 17 \
     Tweaks           "Gnome Tweak Tool"  on \
     GnomeExtensions  "Gnome Extensions"  on \
+    Sensors          "Sensors"           on \
     Vlc              "VLC"               on \
     Chrome           "Chrome"            on \
     Chromium         "Chromium"          on \
