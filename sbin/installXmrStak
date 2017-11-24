@@ -222,8 +222,6 @@ createConfigFile() {
   sudo mkdir -p ${CONFIG_DIR}
   sudo cp ${INSTALL_DIR}xmrstak/config.tpl ${CONFIG_FILE}
   deleteFirstAndLastLine ${CONFIG_FILE}
-  #BEST_CONF=`sudo ${EXECUTABLE} --config ${CONFIG_FILE} | sed -n "/BEGIN/, /END/ p" | grep -v '\*'`
-  #sudo perl -i -0pe "s/\"cpu_threads_conf\" :\s+null,/$BEST_CONF/g" ${CONFIG_FILE}
   sudo sed -i 's/"use_slow_memory" : *"[^"]*",/"use_slow_memory" : "never",/' ${CONFIG_FILE}
   sudo sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' ${CONFIG_FILE}
   sudo sed -i 's/"daemon_mode" : false,/"daemon_mode" : true,/' ${CONFIG_FILE}
