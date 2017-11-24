@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 
-PRODUCT_NAME='xmr-stak-cpu'
-CONFIG_FILE="/etc/${PRODUCT_NAME}.conf"
+PRODUCT_NAME='xmr-stak'
+CONFIG_DIR="/etc/${PRODUCT_NAME}/"
+CONFIG_FILE="${CONFIG_DIR}${PRODUCT_NAME}.conf"
+CPU_FILE="${CONFIG_DIR}cpu.conf"
+NVIDIA_FILE=""
+AMD_FILE=""
+NVIDIA_CMD=""
+AMD_CMD=""
+NVIDIA_COMPILE="-DCUDA_ENABLE=OFF"
+AMD_COMPILE="-DOpenCL_ENABLE=OFF"
 INSTALL_DIR="/opt/${PRODUCT_NAME}/"
-EXECUTABLE="${INSTALL_DIR}bin/${PRODUCT_NAME}"
+EXECUTABLE="${INSTALL_DIR}build/bin/${PRODUCT_NAME}"
 LOG_FILE="/var/log/${PRODUCT_NAME}.log"
 LOG_FILE_ESCAPED="\\/var\\/log\\/${PRODUCT_NAME}.log"
 TASK="install"
@@ -15,14 +23,18 @@ WALLET=""
 PASSWORD=""
 URL="gulf.moneroocean.stream:10001"
 BEST_CONF=""
+NVIDIA=""
+AMD=""
 
 usage() {
   echo "Usage: ${0##*/} [-w Wallet address] [-p Password] [-u Pool URL]"
   echo
   echo "General Options:"
   echo "  -r    Remove/Uninstall"
-  echo "  -f    Remove/reset configuration file (always off for upgrades)"
-  echo "  -k    Keep existing configuration file (always on for upgrades)"
+  echo "  -f    Remove/reset configuration files (always off for upgrades)"
+  echo "  -k    Keep existing configuration files (always on for upgrades)"
+  echo "  -n    Enable Nvidia GPU support"
+  echo "  -a    Enable AMD GPU support"
   echo
   echo "Installation options:"
   echo "  -w    Wallet address"
@@ -32,7 +44,7 @@ usage() {
 }
 
 getArgs(){
-  while getopts ":hrfkw:p:u:" opt; do
+  while getopts ":hrfknaw:p:u:" opt; do
     case ${opt} in
       h )
         usage
@@ -51,6 +63,19 @@ getArgs(){
         ;;
       k )
         RESET_CONFIG="keep"
+        ;;
+      n )
+        NVIDIA="1"
+        NVIDIA_FILE="${CONFIG_DIR}nvidia.conf"
+        NVIDIA_CMD=" --nvidia ${NVIDIA_FILE}"
+        NVIDIA_COMPILE="-DCUDA_ENABLE=ON"
+        #NVIDIA_COMPILE="-DCUDA_ENABLE=ON -DCUDA_ARCH=30 -DXMR-STAK_LARGEGRID=OFF -DXMR-STAK_THREADS=44"
+        ;;
+      a )
+        AMD="1"
+        AMD_FILE="${CONFIG_DIR}amd.conf"
+        AMD_CMD=" --amd ${AMD_FILE}"
+        AMD_COMPILE="-DOpenCL_ENABLE=ON"
         ;;
       w )
         WALLET=$OPTARG
@@ -144,23 +169,23 @@ expectedXmrCpuHashRate() {
 }
 
 createDonateLevelH() {
-  cat >/tmp/donate-level.h <<EOL
+  cat >/tmp/donate-level.hpp <<EOL
 #pragma once
 
 constexpr double fDevDonationLevel = 0.0;
 EOL
 
-  sudo mv -f /tmp/donate-level.h ${INSTALL_DIR}donate-level.h
-  sudo chown root:root ${INSTALL_DIR}donate-level.h
+  sudo mv -f /tmp/donate-level.hpp ${INSTALL_DIR}xmrstak/donate-level.hpp
+  sudo chown root:root ${INSTALL_DIR}xmrstak/donate-level.hpp
 }
 
 createService() {
   cat >/tmp/${PRODUCT_NAME}.service <<EOL
 [Unit]
-Description=XMR Stak CPU Mining service
+Description=XMR Stak Mining service
 
 [Service]
-ExecStart=${EXECUTABLE} ${CONFIG_FILE}
+ExecStart=${EXECUTABLE} --config ${CONFIG_FILE} --cpu ${CPU_FILE}${NVIDIA_CMD}${AMD_CMD}
 Nice=10
 
 [Install]
@@ -187,17 +212,24 @@ EOL
   sudo chown root:root /etc/logrotate.d/${PRODUCT_NAME}
 }
 
+deleteFirstAndLastLine() {
+  sudo sed -i '1d' $1
+  sudo sed -i '$d' $1
+  sudo sed -i '$d' $1
+}
+
 createConfigFile() {
-  sudo cp ${INSTALL_DIR}config.txt ${CONFIG_FILE}
-  BEST_CONF=`sudo ${EXECUTABLE} ${CONFIG_FILE} | sed -n "/BEGIN/, /END/ p" | grep -v '\*'`
-  sudo perl -i -0pe "s/\"cpu_threads_conf\" :\s+null,/$BEST_CONF/g" ${CONFIG_FILE}
-  sudo sed -i 's/"use_slow_memory" : *"[^"]*",/"use_slow_memory" : "no_mlck",/' ${CONFIG_FILE}
+  sudo mkdir -p ${CONFIG_DIR}
+  sudo cp ${INSTALL_DIR}xmrstak/config.tpl ${CONFIG_FILE}
+  deleteFirstAndLastLine ${CONFIG_FILE}
+  #BEST_CONF=`sudo ${EXECUTABLE} --config ${CONFIG_FILE} | sed -n "/BEGIN/, /END/ p" | grep -v '\*'`
+  #sudo perl -i -0pe "s/\"cpu_threads_conf\" :\s+null,/$BEST_CONF/g" ${CONFIG_FILE}
+  sudo sed -i 's/"use_slow_memory" : *"[^"]*",/"use_slow_memory" : "never",/' ${CONFIG_FILE}
   sudo sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' ${CONFIG_FILE}
   sudo sed -i 's/"daemon_mode" : false,/"daemon_mode" : true,/' ${CONFIG_FILE}
   sudo sed -i 's/"output_file" : "",/"output_file" : "'${LOG_FILE_ESCAPED}'",/' ${CONFIG_FILE}
-  sudo sed -i 's/"pool_address" : *"[^"]*",/"pool_address" : "'${URL}'",/' ${CONFIG_FILE}
-  sudo sed -i 's/"wallet_address" : *"[^"]*",/"wallet_address" : "'${WALLET}'",/' ${CONFIG_FILE}
-  sudo sed -i 's/"pool_password" : *"[^"]*",/"pool_password" : "'${PASSWORD}'",/' ${CONFIG_FILE}
+  sudo sed -i 's/POOLCONF/{"pool_address" : "'${URL}'", "wallet_address" : "'${WALLET}'", "pool_password" : "'${PASSWORD}'", "use_nicehash" : false, "use_tls" : false, "tls_fingerprint" : "", "pool_weight" : 1 },/' ${CONFIG_FILE}
+  sudo sed -i 's/CURRENCY/monero/' ${CONFIG_FILE}
 }
 
 uninstall() {
@@ -210,14 +242,14 @@ uninstall() {
   sudo rm -f ${LOG_FILE}
   sudo rm -rf ${INSTALL_DIR}
   if [ -z "$RESET_CONFIG" ]; then
-    echo -n "Remove configuration file? (y/N): "
+    echo -n "Remove configuration files? (y/N): "
     read -e removeConfig
     if [ "$removeConfig" = "y" ]; then
       RESET_CONFIG="reset"
     fi
   fi
   if [ "$RESET_CONFIG" = "reset" ]; then
-    sudo rm -f ${CONFIG_FILE}
+    sudo rm -rf ${CONFIG_DIR}
   fi
   sudo sed -i 's/vm.nr_hugepages=128//' /etc/sysctl.conf
   sudo sed -i 's/* soft memlock 262144//' /etc/security/limits.conf
@@ -234,7 +266,18 @@ upgrade() {
   sudo git checkout -f --quiet && \
   sudo git pull && \
   createDonateLevelH && \
-  sudo cmake -DMICROHTTPD_ENABLE=OFF -DOpenSSL_ENABLE=OFF -DHWLOC_ENABLE=ON . && \
+  sudo mkdir -p ${INSTALL_DIR}build/ && \
+  cd ${INSTALL_DIR}build/ && \
+  sudo cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DMICROHTTPD_ENABLE=OFF \
+    -DOpenSSL_ENABLE=ON \
+    -DXMR-STAK_CURRENCY=monero \
+    -DXMR-STAK_COMPILE=native \
+    -DCPU_ENABLE=ON \
+    -DHWLOC_ENABLE=ON \
+    ${NVIDIA_COMPILE} \
+    ${AMD_COMPILE} && \
   sudo make && \
   sudo systemctl start ${PRODUCT_NAME}.service
   sudo systemctl --no-pager --full status ${PRODUCT_NAME}.service
@@ -248,18 +291,31 @@ install() {
   echoheader
 
   ## Build
+  # NVIDIA: nvidia-cuda-dev nvidia-cuda-toolkit
   sudo apt -y install git libmicrohttpd-dev libssl-dev cmake build-essential libhwloc-dev && \
   sudo git clone https://github.com/fireice-uk/${PRODUCT_NAME}.git ${INSTALL_DIR} && \
   createDonateLevelH && \
-  cd ${INSTALL_DIR} && \
-  sudo cmake -DMICROHTTPD_ENABLE=OFF -DOpenSSL_ENABLE=OFF -DHWLOC_ENABLE=ON . && \
+  sudo mkdir -p ${INSTALL_DIR}build/ && \
+  cd ${INSTALL_DIR}build/ && \
+  sudo cmake .. \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DMICROHTTPD_ENABLE=OFF \
+    -DOpenSSL_ENABLE=ON \
+    -DXMR-STAK_CURRENCY=monero \
+    -DXMR-STAK_COMPILE=native \
+    -DCPU_ENABLE=ON \
+    -DHWLOC_ENABLE=ON \
+    ${NVIDIA_COMPILE} \
+    ${AMD_COMPILE} && \
   sudo make
 
   ## System Configuration
   sudo sysctl -w vm.nr_hugepages=128
+  # Remove existing lines to prevent duplicates
   sudo sed -i 's/vm.nr_hugepages=128//' /etc/sysctl.conf
   sudo sed -i 's/* soft memlock 262144//' /etc/security/limits.conf
   sudo sed -i 's/* hard memlock 262144//' /etc/security/limits.conf
+  # Add large page support settings
   echo "vm.nr_hugepages=128" | sudo tee -a /etc/sysctl.conf
   echo "* soft memlock 262144" | sudo tee -a /etc/security/limits.conf
   echo "* hard memlock 262144" | sudo tee -a /etc/security/limits.conf
@@ -309,17 +365,20 @@ install() {
 
   ## Finished
   echo
-  echo "This is the best configuration ${PRODUCT_NAME}"
-  echo "has automatically detected for this system:"
-  echo "$BEST_CONF"
   echo
-  echo "If you need to change this, be sure to edit the config file:"
-  echo "    sudo nano ${CONFIG_FILE}"
+  echo "All set!"
   echo
-  echo "You should also check the port used in \"pool_address\" the same way."
-  echo "    Available ports: https://moneroocean.stream/#/ports"
+  echo "Be sure to check the configuration files for optimum settings:"
+  echo "    ${CONFIG_FILE}"
+  echo "    ${CPU_FILE}"
+  if [ -n "$NVIDIA" ]; then
+    echo "    ${NVIDIA_FILE}"
+  fi
+  if [ -n "$AMD" ]; then
+    echo "    ${AMD_FILE}"
+  fi
   echo
-  echo "To make your changes effective, restart the service:"
+  echo "To make configuration file changes effective, restart the service:"
   echo "    sudo systemctl restart ${PRODUCT_NAME}.service"
   echo
   echoheader "Finished!"
