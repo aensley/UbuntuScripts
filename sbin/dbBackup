@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+BACKUP_DIRECTORY="/backups"
+
+# Get database list
+databases=`mysql -ss -e "SHOW DATABASES;" | grep -v information_schema | grep -v performance_schema`
+
+for db in ${databases}; do
+  target=${BACKUP_DIRECTORY}/${db}.sql
+  # Dump database
+  mysqldump --single-transaction --default-character-set=utf8mb4 ${db} > ${target}
+  # Gzip dump
+  gzip -f -9 --rsyncable ${target}
+done
