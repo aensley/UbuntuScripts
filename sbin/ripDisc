@@ -122,6 +122,7 @@ if [ $? = 0 ]; then
   echo
   hr
   echo
+  eject
 
   mkdir -p ${DEST}
 
