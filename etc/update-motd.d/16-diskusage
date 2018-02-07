@@ -7,5 +7,5 @@ bashGreen
 echo -n " DISK USAGE "
 bashReset
 echo "=================================="
-df -lh --type=ext4
+df -lh --type=ext4 --type=zfs
 echo
