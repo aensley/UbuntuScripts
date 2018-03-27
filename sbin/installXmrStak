@@ -229,7 +229,7 @@ createConfigFile() {
   sudo sed -i 's/"output_file" : "",/"output_file" : "'${LOG_FILE_ESCAPED}'",/' ${CONFIG_FILE}
   sudo cp ${INSTALL_DIR}xmrstak/pools.tpl ${POOL_FILE}
   deleteFirstAndLastLine ${POOL_FILE}
-  sudo sed -i 's/POOLCONF/{"pool_address" : "'${URL}'", "wallet_address" : "'${WALLET}'", "pool_password" : "'${PASSWORD}'", "use_nicehash" : false, rig_id: "", "use_tls" : true, "tls_fingerprint" : "", "pool_weight" : 1 },/' ${POOL_FILE}
+  sudo sed -i 's/POOLCONF/{"pool_address" : "'${URL}'", "wallet_address" : "'${WALLET}'", "pool_password" : "'${PASSWORD}'", "use_nicehash" : false, "rig_id" : "", "use_tls" : true, "tls_fingerprint" : "", "pool_weight" : 1 },/' ${POOL_FILE}
   sudo sed -i 's/CURRENCY/monero7/' ${POOL_FILE}
 }
 
