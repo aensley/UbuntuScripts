@@ -22,7 +22,7 @@ fi
 RESET_CONFIG=""
 WALLET=""
 PASSWORD=""
-URL="gulf.moneroocean.stream:10001"
+URL="gulf.moneroocean.stream:20001"
 BEST_CONF=""
 NVIDIA=""
 AMD=""
