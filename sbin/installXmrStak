@@ -3,6 +3,7 @@
 PRODUCT_NAME='xmr-stak'
 CONFIG_DIR="/etc/${PRODUCT_NAME}/"
 CONFIG_FILE="${CONFIG_DIR}${PRODUCT_NAME}.conf"
+POOL_FILE="${CONFIG_DIR}pools.conf"
 CPU_FILE="${CONFIG_DIR}cpu.conf"
 NVIDIA_FILE=""
 AMD_FILE=""
@@ -185,7 +186,7 @@ createService() {
 Description=XMR Stak Mining service
 
 [Service]
-ExecStart=${EXECUTABLE} --config ${CONFIG_FILE} --cpu ${CPU_FILE}${NVIDIA_CMD}${AMD_CMD}
+ExecStart=${EXECUTABLE} --config ${CONFIG_FILE} --poolconf ${POOL_FILE} --cpu ${CPU_FILE}${NVIDIA_CMD}${AMD_CMD}
 Nice=10
 
 [Install]
@@ -226,8 +227,10 @@ createConfigFile() {
   sudo sed -i 's/"verbose_level" : 3,/"verbose_level" : 4,/' ${CONFIG_FILE}
   sudo sed -i 's/"daemon_mode" : false,/"daemon_mode" : true,/' ${CONFIG_FILE}
   sudo sed -i 's/"output_file" : "",/"output_file" : "'${LOG_FILE_ESCAPED}'",/' ${CONFIG_FILE}
-  sudo sed -i 's/POOLCONF/{"pool_address" : "'${URL}'", "wallet_address" : "'${WALLET}'", "pool_password" : "'${PASSWORD}'", "use_nicehash" : false, "use_tls" : false, "tls_fingerprint" : "", "pool_weight" : 1 },/' ${CONFIG_FILE}
-  sudo sed -i 's/CURRENCY/monero/' ${CONFIG_FILE}
+  sudo cp ${INSTALL_DIR}xmrstak/pools.tpl ${POOL_FILE}
+  deleteFirstAndLastLine ${POOL_FILE}
+  sudo sed -i 's/POOLCONF/{"pool_address" : "'${URL}'", "wallet_address" : "'${WALLET}'", "pool_password" : "'${PASSWORD}'", "use_nicehash" : false, rig_id: "", "use_tls" : true, "tls_fingerprint" : "", "pool_weight" : 1 },/' ${POOL_FILE}
+  sudo sed -i 's/CURRENCY/monero7/' ${POOL_FILE}
 }
 
 uninstall() {
