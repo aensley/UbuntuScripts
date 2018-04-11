@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# List installed Kernel versions
+
+echoheader "Installed Kernels"
+dpkg --list | grep linux-image
+echoheader "Active Kernel"
+uname -r
