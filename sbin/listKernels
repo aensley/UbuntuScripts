@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
-# List installed Kernel versions
+# List installed Kernel versions, the active kernel, and the livepatch status (if applicable)
 
 echoheader "Installed Kernels"
 dpkg --list | grep linux-image
 echoheader "Active Kernel"
 uname -r
+
+if commandExists canonical-livepatch ; then
+  echoheader "Livepatch Status"
+  canonical-livepatch status
+fi
