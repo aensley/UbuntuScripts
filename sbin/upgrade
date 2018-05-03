@@ -10,6 +10,12 @@ if commandExists snap ; then
   sudo snap refresh
 fi
 
+if commandExists flatpak ; then
+  echoheader "Upgrading Flatpaks"
+  sudo flatpak update
+  flatpak update
+fi
+
 if commandExists update-grub ; then
   echoheader "Updating GRUB"
   sudo update-grub
