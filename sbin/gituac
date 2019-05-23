@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+usage() {
+  echo
+  echo "Updates a Git repository and checks out a new remote branch. The branch must already exist on the remote."
+  echo
+  echo "Usage: $0 new-branch-name"
+  echo
+  exit 1
+}
+
+if [ -z "$1" ]; then
+  usage
+fi
+
+if ! inGitDir; then
+  echo "This script must be run in a git repository."
+  exit 1
+fi
+
+# Switch to master
+git checkout master && \
+# Pull in updates
+git pull && \
+# Checkout the new remote branch
+git checkout $1 && \
+# Make sure our local copy is up-to-date (in case it already existed)
+git pull
