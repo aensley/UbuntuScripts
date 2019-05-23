@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+# Commit and push all changes in a git directory.
+
+if ! inGitDir; then
+  echo "This script must be run in a git repository."
+  exit 1
+fi
+
+# Add all changes to the staging area
+git add . && \
+# Commit changes, prompting for commit message
+git commit && \
+# Push changes back to origin
+git push origin
