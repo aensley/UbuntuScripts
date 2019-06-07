@@ -48,4 +48,8 @@ if commandExists composer ; then
   cd ~/.composer/ && composer update
 fi
 
+if commandExists pihole ; then
+  pihole -up && pihole -g -up
+fi
+
 exit $?
