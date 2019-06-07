@@ -49,6 +49,7 @@ if commandExists composer ; then
 fi
 
 if commandExists pihole ; then
+  echoheader "Updating Pihole"
   pihole -up && pihole -g -up
 fi
 
