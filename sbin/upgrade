@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Update Ubuntu packages, Snaps, GRUB, Node.js packages, Ruby Gems, Python Packages, Composer packages, and Pihole.
+# Update Ubuntu packages, Snaps, GRUB, Node.js packages, Ruby Gems, Python Packages, and Composer packages.
 
 echoheader "Upgrading System Packages"
 sudo apt update && sudo apt -y -f -u full-upgrade && sudo apt autoremove --purge && sudo apt clean
@@ -47,7 +47,5 @@ if commandExists composer ; then
   sudo -H composer self-update
   cd ~/.composer/ && composer update
 fi
-
-updatePihole
 
 exit $?
