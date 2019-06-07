@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Update Pihole and its blacklists.
+
+if commandExists pihole ; then
+  echoheader "Updating Pihole"
+  pihole -up
+  echoheader "Updating Pihole Blacklists"
+  pihole -g -up
+fi

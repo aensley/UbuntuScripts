@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Update Ubuntu packages, Snaps, GRUB, Node.js packages, Ruby Gems, Python Packages, Composer packages, and ADB.
+# Update Ubuntu packages, Snaps, GRUB, Node.js packages, Ruby Gems, Python Packages, Composer packages, and Pihole.
 
 echoheader "Upgrading System Packages"
 sudo apt update && sudo apt -y -f -u full-upgrade && sudo apt autoremove --purge && sudo apt clean
@@ -48,9 +48,6 @@ if commandExists composer ; then
   cd ~/.composer/ && composer update
 fi
 
-if commandExists pihole ; then
-  echoheader "Updating Pihole"
-  pihole -up && echoheader "Updating Pihole Blacklists" && pihole -g -up
-fi
+updatePihole
 
 exit $?
