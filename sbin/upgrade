@@ -50,7 +50,7 @@ fi
 
 if commandExists pihole ; then
   echoheader "Updating Pihole"
-  pihole -up && pihole -g -up
+  pihole -up && echoheader "Updating Pihole Blacklists" && pihole -g -up
 fi
 
 exit $?
