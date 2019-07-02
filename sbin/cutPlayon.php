@@ -1,5 +1,6 @@
 #!/usr/bin/env php
 <?php
+
 define('SCRIPT_START', microtime(1));
 $stdOut = true;
 
@@ -9,7 +10,7 @@ setupBuffering($currentDirectory . 'cutPlayon.log', 'Cut PlayOn');
 ul('Current Directory: ' . $currentDirectory);
 $backupDirectory = $currentDirectory . 'backup' . DIRECTORY_SEPARATOR;
 if (!is_dir($backupDirectory)) {
-    mkdir($backupDirectory);
+	mkdir($backupDirectory);
 }
 
 $videos = listDirectoryContents($currentDirectory);
@@ -18,97 +19,116 @@ $numVideos = count($videos);
 ul($numVideos . ' Video' . ($numVideos === 1 ? '' : 's') . ' Found');
 
 if (!$numVideos) {
-    exit();
+	exit;
 }
 
 foreach ($videos as $video) {
-    smallHeader(basename($video));
-    $backup = backupVideo($video);
-    if (!$backup) {
-        ul('Unable to create a backup!', 1);
-        continue;
-    }
+	smallHeader(basename($video));
+	$backup = backupVideo($video);
+	if (!$backup) {
+		ul('Unable to create a backup!', 1);
+		continue;
+	}
 
-    $chapters = getVideoChapters($backup);
-    if (!is_array($chapters) || empty($chapters) || !is_array($chapters['chapters']) || empty($chapters['chapters'])) {
-        ul('Unable to read video info.', 1);
-        continue;
-    }
+	$chapters = getVideoChapters($backup);
+	if (!is_array($chapters) || empty($chapters) || !is_array($chapters['chapters'])) {
+		ul('Unable to read video info.', 1);
+		continue;
+	}
 
-    $chapterFile = loopChapters($video, $chapters, $backup);
-    $chapterFileLines = file($chapterFile);
-    if (empty($chapterFileLines) || count($chapterFileLines) % 3 !== 0) {
-        ul('Error writing chapter file.', 1);
-        continue;
-    }
-    
-    if (convertVideo($video, $chapterFile)) {
-        ul('SUCCESS!', 1);
-    } else {
-        ul('ERROR', 1);
-    }
+	$chapterFile = loopChapters($video, $chapters, $backup);
+	$chapterFileLines = file($chapterFile);
+	if (empty($chapterFileLines) || count($chapterFileLines) % 3 !== 0) {
+		ul('Error writing chapter file.', 1);
+		continue;
+	}
+
+	if (convertVideo($video, $chapterFile)) {
+		ul('SUCCESS!', 1);
+		unlink($chapterFile);
+	} else {
+		ul('ERROR', 1);
+	}
 }
 
-function convertVideo($video, $chapterFile) {
-    return runProcess('ffmpeg -f concat -i ' . escapeshellarg($chapterFile) . ' -c copy ' . escapeshellarg($video), '', false, true, false, 2);
+function convertVideo($video, $chapterFile)
+{
+	return runProcess('ffmpeg -f concat -safe 0 -i ' . escapeshellarg($chapterFile) . ' -c copy -c:a copy -y ' . escapeshellarg($video), '', false, true, false, 1);
 }
 
-function loopChapters($video, $chapters, $backup) {
-    $chapters = array_values(
-        array_filter(
-            $chapters['chapters'], 
-            function ($chapter) { return ($chapter['tags']['title'] !== 'Advertisement'); }
-        )
-    );
+function loopChapters($video, $chapters, $backup)
+{
+	$format = $chapters['format'];
+	$chapters = array_values(
+		array_filter(
+			$chapters['chapters'],
+			function ($chapter) {
+				return ($chapter['tags']['title'] !== 'Advertisement');
+			}
+		)
+	);
 
-    $chapterFile = substr($video, 0, -4) . '.txt';
-    if (is_file($chapterFile)) {
-        unlink($chapterFile);
-    }
+	$chapterFile = substr($video, 0, -4) . '.txt';
+	if (is_file($chapterFile)) {
+		unlink($chapterFile);
+	}
 
-    $chapterCount = count($chapters);
-    ul($chapterCount . ' chapter' . ($chapterCount === 1 ? '' : 's'), 1);
-    for ($i = 0; $i < $chapterCount; $i++) {
-        $chapter = $chapters[$i];
-        if ($i === 0) {
-            // ul('Altering start time.', 1);
-            $chapter['start_time'] += 5.0;
-        }
-        
-        if ($i === ($chapterCount - 1)) {
-            // ul('Altering end time.', 1);
-            $chapter['end_time'] -= 5.0;
-        }
-        
-        ul($chapter['start_time'] . ' - ' . $chapter['end_time'], 2);
-        file_put_contents(
-            $chapterFile, 
-            'file \'' . addcslashes($backup, '\'') . '\'' . PHP_EOL . 
-            'inpoint ' . $chapter['start_time'] . PHP_EOL . 
-            'outpoint ' . $chapter['end_time'] . PHP_EOL,
-            FILE_APPEND
-        );
-    }
+	$chapterCount = count($chapters);
+	ul($chapterCount . ' chapter' . ($chapterCount === 1 ? '' : 's'), 1);
+	$backupEscaped = addcslashes($backup, ' \\\'');
+	if (!$chapterCount) {
+		$format['start_time'] += 5.0;
+		$format['duration'] -= 5.0;
+		writeChapter($chapterFile, $backupEscaped, $format['start_time'], $format['duration']);
+	} else {
+		for ($i = 0; $i < $chapterCount; $i++) {
+			$chapter = $chapters[$i];
+			if ($i === 0) {
+				//ul('Altering start time.', 1);
+				$chapter['start_time'] += 5.0;
+			}
 
-    return $chapterFile;
+			if ($i === ($chapterCount - 1)) {
+				//ul('Altering end time.', 1);
+				$chapter['end_time'] -= 5.0;
+			}
+
+			writeChapter($chapterFile, $backupEscaped, $chapter['start_time'], $chapter['end_time']);
+		}
+	}
+
+	return $chapterFile;
+}
+
+function writeChapter($chapterFile, $backupEscaped, $startTime, $endTime)
+{
+	ul($startTime . ' - ' . $endTime, 2);
+	file_put_contents(
+		$chapterFile,
+		'file ' . $backupEscaped . '' . PHP_EOL .
+			'inpoint ' . $startTime . PHP_EOL .
+			'outpoint ' . $endTime . PHP_EOL,
+		FILE_APPEND
+	);
 }
 
 
 function getVideoChapters($file)
 {
-    $output = runProcess('ffprobe -i ' . escapeshellarg($file) . ' -print_format json -show_chapters -loglevel error', '', false, true, true, 2);
-    return json_decode(implode($output), true);
+	$output = runProcess('ffprobe -i ' . escapeshellarg($file) . ' -print_format json -show_chapters -show_format -loglevel error', '', false, true, true, 2);
+	return json_decode(implode($output), true);
 }
 
-function backupVideo($video = '') {
-    global $currentDirectory, $backupDirectory;
-    $backupFileName = $backupDirectory . $video;
-    if (!is_file($backupFileName)) {
-        ul('Making a backup...');
-        return (copy($currentDirectory . $video, $backupFileName) ? $backupFileName : false);
-    }
+function backupVideo($video = '')
+{
+	global $currentDirectory, $backupDirectory;
+	$backupFileName = $backupDirectory . $video;
+	if (!is_file($backupFileName)) {
+		ul('Making a backup...');
+		return (copy($currentDirectory . $video, $backupFileName) ? $backupFileName : false);
+	}
 
-    return $backupFileName;
+	return $backupFileName;
 }
 
 //======================================================================================================================
@@ -250,17 +270,15 @@ function runProcess($command = '', $errorMessage = '', $passThrough = false, $re
 
 function listDirectoryContents($directory = '')
 {
-	return (
-		!empty($directory) && is_readable($directory) && is_dir($directory)
+	return (!empty($directory) && is_readable($directory) && is_dir($directory)
 		? array_filter(
-            scandir($directory), 
-            function ($entry) {
-                $skipEntries = array('.', '..', '.svn', '.git', '.gitkeep');
-                return (!in_array($entry, $skipEntries) && strtolower(substr($entry, -4)) === '.mp4');
-            }
-        )
-		: array()
-	);
+			scandir($directory),
+			function ($entry) {
+				$skipEntries = array('.', '..', '.svn', '.git', '.gitkeep');
+				return (!in_array($entry, $skipEntries) && strtolower(substr($entry, -4)) === '.mp4');
+			}
+		)
+		: array());
 }
 
 function ignoreEntries($entry)
@@ -288,10 +306,10 @@ function setupBuffering($file = '', $title = '')
 	}
 
 	$scriptTitle = $title;
-    $obFile = fopen($file, 'a');
+	$obFile = fopen($file, 'a');
 	register_shutdown_function('endBuffering');
-    ob_start('obFileCallback');
-    hr();
+	ob_start('obFileCallback');
+	hr();
 	textHeader(now() . (!empty($scriptTitle) ? ' ' . $scriptTitle : ''));
 }
 
@@ -425,43 +443,3 @@ function pause()
 	fwrite(STDOUT, 'Press [Enter] to continue or [CTRL-C] to abort...');
 	fgets(STDIN);
 }
-
-
-/*
-$directory = (Get-Location).Path + "\"
-#$directory = "C:\Users\awens\Videos\PlayOn\Chuggington\Season 5\"
-$originalsDirectory = "${directory}Originals\"
-
-If(!(test-path $originalsDirectory))
-{
-    New-Item -ItemType Directory -Force -Path $originalsDirectory
-}
-
-$files = Get-ChildItem "${directory}*.mp4"
-
-for ($i=0; $i -lt $files.Count; $i++) {
-    echo ""
-    echo "============================================================"
-    echo $files[$i].Name
-    echo "============================================================"
-    $newFile = $files[$i].FullName
-    $originalFile = ${originalsDirectory} + $files[$i].Name
-    If(test-path $originalFile)
-    {
-        echo "    This file was already cut. Skipping."
-    } Else {
-        Move-Item -Path $newFile -Destination $originalFile
-        #ffmpeg -i "$originalFile" -ss 5 -c copy "$newFile"
-        $originalLength = ffprobe -v error -select_streams v:0 -show_entries stream=duration -of default=noprint_wrappers=1:nokey=1 "$originalFile"
-        $newLength = ($originalLength - 10)
-        ffmpeg -i "$originalFile" -ss 5 -t $newLength -c copy "$newFile"
-    }
-
-}
-
-echo ""
-echo "============================================================"
-echo "DONE"
-echo "============================================================"
-
-*/
