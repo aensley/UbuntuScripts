@@ -44,10 +44,10 @@ foreach ($videos as $video) {
 	}
 
 	if (convertVideo($video, $chapterFile)) {
-		ul('SUCCESS!', 1);
+		ul('SUCCESS!');
 		unlink($chapterFile);
 	} else {
-		ul('ERROR', 1);
+		ul('ERROR');
 	}
 }
 
@@ -74,7 +74,7 @@ function loopChapters($video, $chapters, $backup)
 	}
 
 	$chapterCount = count($chapters);
-	ul($chapterCount . ' chapter' . ($chapterCount === 1 ? '' : 's'), 1);
+	ul($chapterCount . ' chapter' . ($chapterCount === 1 ? '' : 's'));
 	$backupEscaped = addcslashes($backup, ' \\\'');
 	if (!$chapterCount) {
 		$format['start_time'] += 5.0;
@@ -102,7 +102,7 @@ function loopChapters($video, $chapters, $backup)
 
 function writeChapter($chapterFile, $backupEscaped, $startTime, $endTime)
 {
-	ul($startTime . ' - ' . $endTime, 2);
+	ul($startTime . ' - ' . $endTime, 1);
 	file_put_contents(
 		$chapterFile,
 		'file ' . $backupEscaped . '' . PHP_EOL .
