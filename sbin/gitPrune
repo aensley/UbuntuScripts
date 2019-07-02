@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+
+pause() {
+  read -p 'Press [Enter] to continue or [CTRL-C] to abort...'
+}
+
+if ! inGitDir; then
+  echo 'This script must be run in a git repository.'
+  exit 1
+fi
+
+echo
+echo '********** WARNING **********'
+echo 'This script removes ALL local branches without a matching remote.'
+echo 'This includes local branches that were just created and have not been pushed yet.'
+echo
+echo 'DO NOT USE unless you are ABSOLUTELY SURE you know what you are doing.'
+echo '********** WARNING **********'
+echo
+echo '----'
+echo
+pause
+
+echo
+echo '----'
+echo
+echo 'Pruning remote references...'
+echo
+git fetch --prune
+echo
+echo 'The following local branches will be DELETED:'
+git branch -r | awk '{print $1}' | egrep -v -f /dev/fd/0 <(git branch -vv | grep origin) | awk '{print $1}'
+echo
+pause
+
+echo
+echo 'Deleting branches...'
+echo
+git branch -r | awk '{print $1}' | egrep -v -f /dev/fd/0 <(git branch -vv | grep origin) | awk '{print $1}' | xargs git branch -D
