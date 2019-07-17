@@ -2,6 +2,7 @@
 <?php
 
 define('SCRIPT_START', microtime(1));
+setlocale(LC_ALL, 'en_US.UTF-8');
 $stdOut = true;
 
 $currentDirectory = getcwd();
@@ -24,15 +25,18 @@ if (!$numVideos) {
 
 foreach ($videos as $video) {
 	smallHeader(basename($video));
+	$video = renameVideo($video);
 	$backup = backupVideo($video);
 	if (!$backup) {
 		ul('Unable to create a backup!', 1);
+		ul('---------- ERROR ----------');
 		continue;
 	}
 
 	$chapters = getVideoChapters($backup);
 	if (!is_array($chapters) || empty($chapters) || !is_array($chapters['chapters'])) {
 		ul('Unable to read video info.', 1);
+		ul('---------- ERROR ----------');
 		continue;
 	}
 
@@ -40,15 +44,29 @@ foreach ($videos as $video) {
 	$chapterFileLines = file($chapterFile);
 	if (empty($chapterFileLines) || count($chapterFileLines) % 3 !== 0) {
 		ul('Error writing chapter file.', 1);
+		ul('---------- ERROR ----------');
 		continue;
 	}
 
 	if (convertVideo($video, $chapterFile)) {
-		ul('SUCCESS!');
+		ul('+++++ SUCCESS! +++++');
 		unlink($chapterFile);
 	} else {
-		ul('ERROR');
+		ul('---------- ERROR ----------');
 	}
+}
+
+function renameVideo($video)
+{
+	$video = basename($video);
+	$videoRenamed = preg_replace('/[^a-z0-9 .-_]/i', '-', $video);
+	if ($videoRenamed !== $video) {
+		rename($video, $videoRenamed);
+		ul('Renamed: ' . $videoRenamed);
+		return $videoRenamed;
+	}
+
+	return $video;
 }
 
 function convertVideo($video, $chapterFile)
