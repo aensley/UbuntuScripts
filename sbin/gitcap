@@ -10,6 +10,6 @@ fi
 # Add all changes to the staging area
 git add . && \
 # Commit changes, prompting for commit message
-git commit && \
+git commit -S && \
 # Push changes back to origin
 git push origin
