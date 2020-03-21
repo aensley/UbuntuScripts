@@ -50,7 +50,7 @@ installGnomeExtensions() {
 }
 
 installSensors() {
-  toInstall="${toInstall} lm-sensors hddtemp gir1.2-gtop-2.0 gir1.2-networkmanager-1.0  gir1.2-clutter-1.0"
+  toInstall="${toInstall} lm-sensors hddtemp"
   sensorsInstalled='1'
 }
 
@@ -107,13 +107,12 @@ installJdk() {
 
 installPhp() {
   echoHugeHeader "Installing PHP"
-  sudo add-apt-repository -y ppa:ondrej/php
-  toInstall="${toInstall} php-cli php-curl php-json php-mbstring php-mcrypt php-xml php-zip"
+  toInstall="${toInstall} php-cli php-curl php-json php-mbstring php-xml php-zip"
 }
 
 installNodejs() {
   echoHugeHeader "Installing Node.js"
-  wget -qO - https://deb.nodesource.com/setup_8.x | sudo -E bash -
+  wget -qO - https://deb.nodesource.com/setup_13.x | sudo -E bash -
   toInstall="${toInstall} nodejs"
 }
 
