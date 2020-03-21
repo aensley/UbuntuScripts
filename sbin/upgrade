@@ -31,11 +31,11 @@ if commandExists npm ; then
   cd /usr/lib/node_modules && sudo npm update -g
 fi
 
-if commandExists gem ; then
-  echoheader "Updating Ruby Gems"
-  sudo -H gem update --system
-  sudo -H gem update
-fi
+#if commandExists gem ; then
+#  echoheader "Updating Ruby Gems"
+#  sudo -H gem update --system
+#  sudo -H gem update
+#fi
 
 if commandExists pip ; then
   echoheader "Upgrading Python Packages"
