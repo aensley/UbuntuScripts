@@ -19,6 +19,6 @@ sudo fallocate -l ${SWAP_SIZE}G ${SWAP_FILE} && \
 sudo mkswap ${SWAP_FILE} && \
 sudo chmod 600 ${SWAP_FILE} && \
 sudo swapon ${SWAP_FILE} && \
-echo "${SWAP_FILE} swap swap defaults 0 0" | sudo tee /etc/fstab && \
+echo "${SWAP_FILE} swap swap defaults 0 0" | sudo tee -a /etc/fstab && \
 sudo sysctl vm.swappiness=10 && \
-echo "vm.swappiness=10" | sudo tee /etc/sysctl.conf
+echo "vm.swappiness=10" | sudo tee -a /etc/sysctl.conf
