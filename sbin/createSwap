@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+# Create a file-based swap.
+
+if test "$1" = ""; then
+  echo "Usage: createSwap <swap file size in GB>"
+  exit 1
+fi
+
+SWAP_SIZE=$1
+SWAP_FILE="/swapfile"
+
+if [ -f "$SWAP_FILE" ]; then
+  echo "Swap file already exists!"
+  exit 1
+fi
+
+sudo fallocate -l ${SWAP_SIZE}G ${SWAP_FILE} && \
+sudo mkswap ${SWAP_FILE} && \
+sudo chmod 600 ${SWAP_FILE} && \
+sudo swapon ${SWAP_FILE} && \
+echo "${SWAP_FILE} swap swap defaults 0 0" | sudo tee /etc/fstab && \
+sudo sysctl vm.swappiness=10 && \
+echo "vm.swappiness=10" | sudo tee /etc/sysctl.conf
