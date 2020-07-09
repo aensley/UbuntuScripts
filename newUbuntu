@@ -98,11 +98,11 @@ installGeditPlugins() {
 }
 
 installJre() {
-  toInstall="${toInstall} openjdk-9-jre"
+  toInstall="${toInstall} openjdk-11-jre"
 }
 
 installJdk() {
-  toInstall="${toInstall} openjdk-9-jdk"
+  toInstall="${toInstall} openjdk-11-jdk"
 }
 
 installPhp() {
@@ -112,7 +112,7 @@ installPhp() {
 
 installNodejs() {
   echoHugeHeader "Installing Node.js"
-  wget -qO - https://deb.nodesource.com/setup_13.x | sudo -E bash -
+  wget -qO - https://deb.nodesource.com/setup_12.x | sudo -E bash -
   toInstall="${toInstall} nodejs"
 }
 
