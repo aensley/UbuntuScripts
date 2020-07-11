@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+# Purge old kernel packages that aren't needed anymore
+
+echoheader "Active Kernel"
+
+uname -r
+
+echoheader "Kernels to Purge"
+
+oldList=`oldKernels`
+echo "${oldList}"
+
+echoheader "Purging Old Kernels"
+
+sudo apt purge ${oldList%%*( )}
