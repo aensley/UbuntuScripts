@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+echoheader 'Concat MP4s'
+
+echo 'This script will concatenate all MP4s in the current directory into a single output.mp4'
+echo
+read -p 'Press [Enter] to continue or [CTRL-C] to abort...'
+echo
+
+for f in ./*.mp4; do
+        echo "file '$f'" >> mp4list.txt
+done
+
+listSize=$(wc -l "mp4list.txt" | awk '{print $1}')
+
+if [ "$listSize" = "1" ]; then
+        echo "No MP4s found"
+else
+	echo "$listSize MP4s found"
+	ffmpeg -f concat -safe 0 -i mp4list.txt -map 0 -c copy -c:a copy -c:s copy -y output.mp4
+fi
+
+rm mp4list.txt
+
+echoheader 'Done!'

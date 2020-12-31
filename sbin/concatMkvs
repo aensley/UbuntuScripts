@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+echoheader 'Concat MKVs'
+
+echo 'This script will concatenate all MKVs in the current directory into a single output.mkv'
+echo
+read -p 'Press [Enter] to continue or [CTRL-C] to abort...'
+echo
+
+for f in ./*.mkv; do
+        echo "file '$f'" >> mkvlist.txt
+done
+
+listSize=$(wc -l "mkvlist.txt" | awk '{print $1}')
+
+if [ "$listSize" = "1" ]; then
+        echo "No MKVs found"
+else
+	echo "$listSize MKVs found"
+	ffmpeg -f concat -safe 0 -i mkvlist.txt -map 0 -c copy -c:a copy -c:s copy -y output.mkv
+fi
+
+rm mkvlist.txt
+
+echoheader 'Done!'
