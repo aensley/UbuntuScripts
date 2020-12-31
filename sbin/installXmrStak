@@ -23,7 +23,6 @@ RESET_CONFIG=""
 WALLET=""
 PASSWORD=""
 URL="gulf.moneroocean.stream:20001"
-BEST_CONF=""
 NVIDIA=""
 AMD=""
 
@@ -113,39 +112,39 @@ expectedXmrCpuHashRate() {
     return
   fi
 
-  LSCPU=`lscpu`
-  CPU_SOCKETS=`echo "$LSCPU" | grep "^Socket(s):" | cut -d':' -f2 | sed "s/^[ \t]*//"`
+  LSCPU=$(lscpu)
+  CPU_SOCKETS=$(echo "$LSCPU" | grep "^Socket(s):" | cut -d':' -f2 | sed "s/^[ \t]*//")
   if [ -z $CPU_SOCKETS ]; then
     echo "ERROR: Can't get CPU sockets from lscpu output"
     return
   fi
-  CPU_CORES_PER_SOCKET=`echo "$LSCPU" | grep "^Core(s) per socket:" | cut -d':' -f2 | sed "s/^[ \t]*//"`
+  CPU_CORES_PER_SOCKET=$(echo "$LSCPU" | grep "^Core(s) per socket:" | cut -d':' -f2 | sed "s/^[ \t]*//")
   if [ -z $CPU_CORES_PER_SOCKET ]; then
     echo "ERROR: Can't get CPU cores per socket from lscpu output"
     return
   fi
-  CPU_THREADS=`echo "$LSCPU" | grep "^CPU(s):" | cut -d':' -f2 | sed "s/^[ \t]*//"`
+  CPU_THREADS=$(echo "$LSCPU" | grep "^CPU(s):" | cut -d':' -f2 | sed "s/^[ \t]*//")
   if [ -z $CPU_THREADS ]; then
     echo "ERROR: Can't get CPU cores from lscpu output"
     return
   fi
-  CPU_MHZ=`echo "$LSCPU" | grep "^CPU MHz:" | cut -d':' -f2 | sed "s/^[ \t]*//"`
+  CPU_MHZ=$(echo "$LSCPU" | grep "^CPU MHz:" | cut -d':' -f2 | sed "s/^[ \t]*//")
   CPU_MHZ=${CPU_MHZ%.*}
   if [ -z $CPU_MHZ ]; then
     echo "ERROR: Can't get CPU MHz from lscpu output"
     return
   fi
-  CPU_L1_CACHE=`echo "$LSCPU" | grep "^L1d cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
+  CPU_L1_CACHE=$(echo "$LSCPU" | grep "^L1d cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//")
   if [ -z $CPU_L1_CACHE ]; then
     echo "ERROR: Can't get L1 CPU cache from lscpu output"
     return
   fi
-  CPU_L2_CACHE=`echo "$LSCPU" | grep "^L2 cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
+  CPU_L2_CACHE=$(echo "$LSCPU" | grep "^L2 cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//")
   if [ -z $CPU_L2_CACHE ]; then
     echo "ERROR: Can't get L2 CPU cache from lscpu output"
     return
   fi
-  CPU_L3_CACHE=`echo "$LSCPU" | grep "^L3 cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
+  CPU_L3_CACHE=$(echo "$LSCPU" | grep "^L3 cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//")
   if [ -z $CPU_L3_CACHE ]; then
     echo "ERROR: Can't get L3 CPU cache from lscpu output"
     return
@@ -385,7 +384,7 @@ install() {
   echoheader "Finished!"
 }
 
-getArgs $@
+getArgs "$@"
 
 # Perform the requested task.
 eval "${TASK}"

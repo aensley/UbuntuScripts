@@ -4,14 +4,14 @@
 
 base='/sys/class/hwmon/'
 
-for hwmon in `ls $base`; do
+for hwmon in "$base"*; do
   tempFiles="${base}${hwmon}/temp*_input"
   if compgen -G ${tempFiles} > /dev/null; then
     echo
-    echo "${hwmon} `cat ${base}${hwmon}/name`"
-    for temp in `ls ${tempFiles}`; do
-      tempNum=`echo ${temp} | awk -F'/' '{print $6}' | awk -F'_' '{print $1}'`
-      echo "    ${tempNum}: `cat ${temp} | awk '{print $1/1000}'`°C"
+    echo "${hwmon} $(cat ${base}${hwmon}/name)"
+    for temp in ${tempFiles}; do
+      tempNum=$(echo "${temp}" | awk -F'/' '{print $6}' | awk -F'_' '{print $1}')
+      echo "    ${tempNum}: $(cat ${temp} | awk '{print $1/1000}')°C"
     done
   fi
 done

@@ -72,7 +72,7 @@ installChromium() {
 installBrave() {
   echoHugeHeader "Installing Brave"
   wget -qO- https://s3-us-west-2.amazonaws.com/brave-apt/keys.asc | sudo apt-key add -
-  echo "deb [arch=amd64] https://s3-us-west-2.amazonaws.com/brave-apt `lsb_release -sc` main" | sudo tee -a /etc/apt/sources.list.d/brave-`lsb_release -sc`.list
+  echo "deb [arch=amd64] https://s3-us-west-2.amazonaws.com/brave-apt $(lsb_release -sc) main" | sudo tee -a "/etc/apt/sources.list.d/brave-$(lsb_release -sc).list"
   toInstall="${toInstall} brave"
 }
 
@@ -196,7 +196,7 @@ echoHugeHeader "Upgrading System"
 
 if [ -n "${gnomeExtensionsInstalled}" ]; then
   echoHugeHeader "Opening favorite Gnome extensions"
-  read -p "Please enter your email address for profile Gravatar: " gravatarEmail
+  read -rp "Please enter your email address for profile Gravatar: " gravatarEmail
   dconf write /org/gnome/shell/extensions/gravatar/email "'${gravatarEmail}'"
   xdg-open "https://extensions.gnome.org/extension/1262/bing-wallpaper-changer/"
   xdg-open "https://extensions.gnome.org/extension/1015/gravatar/"

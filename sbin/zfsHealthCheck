@@ -19,9 +19,9 @@ RECIPIENT="root"
 # Health - Check if all zfs volumes are in good condition. We are looking for
 # any keyword signifying a degraded or broken array.
 
-condition=$(/sbin/zpool status | egrep -i '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
+condition=$(/sbin/zpool status | grep -iE '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
 if [ "${condition}" ]; then
-  emailSubject="`hostname` - ZFS pool - HEALTH fault"
+  emailSubject="$(hostname) - ZFS pool - HEALTH fault"
   problems=1
 fi
 
@@ -88,11 +88,11 @@ if [ ${problems} -eq 0 ]; then
   zfsVolumes=$(/sbin/zpool list -H -o name)
 
   for volume in ${zfsVolumes}; do
-    if [ $(/sbin/zpool status $volume | egrep -c "none requested") -ge 1 ]; then
+    if [ "$(/sbin/zpool status $volume | grep -cE "none requested")" -ge 1 ]; then
       echo "ERROR: You need to run \"zpool scrub $volume\" before this script can monitor the scrub expiration time."
       break
     fi
-    if [ $(/sbin/zpool status $volume | egrep -c "scrub in progress|resilver") -ge 1 ]; then
+    if [ "$(/sbin/zpool status $volume | grep -cE "scrub in progress|resilver")" -ge 1 ]; then
       break
     fi
 
@@ -100,7 +100,7 @@ if [ ${problems} -eq 0 ]; then
     scrubDate=$(date -d "$scrubRawDate" +%s)
 
     if [ $(($currentDate - $scrubDate)) -ge $scrubExpire ]; then
-      emailSubject="`hostname` - ZFS pool - Scrub Time Expired. Scrub Needed on Volume(s)"
+      emailSubject="$(hostname) - ZFS pool - Scrub Time Expired. Scrub Needed on Volume(s)"
       problems=1
     fi
   done
@@ -117,7 +117,7 @@ fi
 # + Update Nagios, Cacti, Zabbix, Munin or even BigBrother
 
 if [ "$problems" -ne 0 ]; then
-  echo -e "$emailSubject \n\n\n `/sbin/zpool list` \n\n\n `/sbin/zpool status`" | mail -s "$emailSubject" "$RECIPIENT"
+  echo -e "$emailSubject \n\n\n $(/sbin/zpool list) \n\n\n $(/sbin/zpool status)" | mail -s "$emailSubject" "$RECIPIENT"
   logger $emailSubject
 fi
 
