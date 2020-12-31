@@ -9,18 +9,18 @@ bashReset
 echo "=================================="
 CPUTIME=$(ps -eo pcpu | awk 'NR>1' | awk '{tot=tot+$1} END {print tot}')
 CPUCORES=$(cat /proc/cpuinfo | grep -c processor)
-CPUAVGUSAGE=`awk 'BEGIN{printf("%0.2f", '$CPUTIME' / '$CPUCORES')}'`
+CPUAVGUSAGE=$(awk 'BEGIN{printf("%0.2f", '$CPUTIME' / '$CPUCORES')}')
 CPUAVGUSAGE="${CPUAVGUSAGE}%"
-RAMTOTAL=`free -m | head -n 2 | tail -n 1 | awk {'print $2'}`
-RAMTOTAL=`awk 'BEGIN{printf("%0.1f", '$RAMTOTAL' / 1024)}'`
-RAMUSED=`free -m | head -n 2 | tail -n 1 | awk {'print $3'}`
-RAMUSED=`awk 'BEGIN{printf("%0.1f", '$RAMUSED' / 1024)}'`
-RAMFREE=`free -m | head -n 2 | tail -n 1 | awk {'print $4'}`
-RAMFREE=`awk 'BEGIN{printf("%0.1f", '$RAMFREE' / 1024)}'`
-RAMCACHE=`free -m | head -n 2 | tail -n 1 | awk {'print $6'}`
-RAMCACHE=`awk 'BEGIN{printf("%0.1f", '$RAMCACHE' / 1024)}'`
-SWAPUSED=`free -m | tail -n 1 | awk {'print $3'}`
-SWAPUSED=`awk 'BEGIN{printf("%0.1f", '$SWAPUSED' / 1024)}'`
+RAMTOTAL=$(free -m | head -n 2 | tail -n 1 | awk "{'print $2'}")
+RAMTOTAL=$(awk 'BEGIN{printf("%0.1f", '$RAMTOTAL' / 1024)}')
+RAMUSED=$(free -m | head -n 2 | tail -n 1 | awk "{'print $3'}")
+RAMUSED=$(awk 'BEGIN{printf("%0.1f", '$RAMUSED' / 1024)}')
+RAMFREE=$(free -m | head -n 2 | tail -n 1 | awk "{'print $4'}")
+RAMFREE=$(awk 'BEGIN{printf("%0.1f", '$RAMFREE' / 1024)}')
+RAMCACHE=$(free -m | head -n 2 | tail -n 1 | awk "{'print $6'}")
+RAMCACHE=$(awk 'BEGIN{printf("%0.1f", '$RAMCACHE' / 1024)}')
+SWAPUSED=$(free -m | tail -n 1 | awk "{'print $3'}")
+SWAPUSED=$(awk 'BEGIN{printf("%0.1f", '$SWAPUSED' / 1024)}')
 echo -e "CPU\t\tRAM\t\tUsed\t\tFree\t\tCache\tSwap"
 echo -e "\033[96m$CPUAVGUSAGE\033[m\t\t\033[94m${RAMTOTAL}GB\033[m\t\t\033[33m${RAMUSED}GB\033[m\t\t\033[32m${RAMFREE}GB\033[m\t\t\033[92m${RAMCACHE}GB\033[m\t\033[31m${SWAPUSED}GB\033[m"
 echo

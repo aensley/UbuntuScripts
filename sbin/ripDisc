@@ -78,7 +78,7 @@ disc_name=""
 while [ -z "$disc_name" ]; do
   echo
   echo -n "What is the name of this ${disc_type}?: "
-  read -e disc_name
+  read -er disc_name
 done
 
 # Replace all non-alphanumeric characters with "_"
@@ -126,7 +126,7 @@ if [ $? = 0 ]; then
 
   mkdir -p ${DEST}
 
-  for FILE in `ls ${SRC}`
+  for FILE in "${SRC}"*
   do
     echo
     hr
