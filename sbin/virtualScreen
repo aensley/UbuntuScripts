@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Sets up a virtual display and an ADB tunnel over which an android tablet can VNC via USB connection.
+
+# Create a new mode called "galaxynoteprovirtual"
+xrandr --newmode "galaxynoteprovirtual"  155.63  1728 1840 2024 2320  1080 1081 1084 1118  -HSync +Vsync && \
+# Add it to the HDMI-1 output
+xrandr --addmode HDMI-1 galaxynoteprovirtual && \
+# Set the output's position
+xrandr --output HDMI-1 --mode galaxynoteprovirtual --left-of eDP-1 && \
+# Enable reverse port forward so that localhost:5900 on the android tablet points to localhost:5900 on the Linux machine
+adb reverse tcp:5900 tcp:5900 && \
+# Start the VNC server
+x11vnc -clip 1728x1080+0+0 -multiptr -noxdamage -nowf -viewonly -listen localhost -passwd "gnpvirt1"
+
+xrandr --output HDMI-1 --off
+xrandr --delmode HDMI-1 galaxynoteprovirtual
+xrandr --rmmode galaxynoteprovirtual
