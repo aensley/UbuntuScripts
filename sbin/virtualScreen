@@ -13,6 +13,9 @@ adb reverse tcp:5900 tcp:5900 && \
 # Start the VNC server
 x11vnc -clip 1728x1080+0+0 -multiptr -noxdamage -nowf -viewonly -listen localhost -passwd "gnpvirt1"
 
+# Turn off the display
 xrandr --output HDMI-1 --off
+# Remove the mode
 xrandr --delmode HDMI-1 galaxynoteprovirtual
+# Delete the mode
 xrandr --rmmode galaxynoteprovirtual
