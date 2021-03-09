@@ -4,6 +4,8 @@ echoheader "Zpool List" && \
 sudo zpool list && \
 echoheader "Zpool Status" && \
 sudo zpool status && \
+echoheader "I/O Status" && \
+sudo zpool iostat -v && \
 echoheader "Compress Ratio" && \
 sudo zfs get compressratio && \
 echoheader "Arc" && \
