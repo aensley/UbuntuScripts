@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+# Reports the request sensor's temperature.
+# Usage: getTemp <sensor name>
+
+if [ -z $1 ]; then
+  echo "Sensor name required!\n\nUsage: getTemp <sensor name>\n"
+  exit
+fi
+
+SENSORNAME = "$1"
+
+TP=`/usr/bin/sensors -A | grep "${SENSORNAME}" -m 1 | sed -e 's/${SENSORNAME}:[ ]*+//' -e 's/.0[a-zA-Z0-9(=+,.°) ]*//'
+
+if [ -z $2 ]; then
+  echo $TP
+fi
+
+exit $TP

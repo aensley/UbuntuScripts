@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# Reports the named NVMe Drive's temperature.
+# Usage: nvmeTemp nvme0
+
+TP=`/usr/sbin/smartctl -A /dev/$1 | grep Temp -m 1 | awk -F " " '{printf "%d",$2}'`
+
+if [ -z $2 ]; then
+  echo $TP
+fi
+
+exit $TP
