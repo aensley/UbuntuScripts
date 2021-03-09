@@ -6,7 +6,7 @@ echoheader "Zpool Status" && \
 sudo zpool status && \
 echoheader "Compress Ratio" && \
 sudo zfs get compressratio && \
-echoheader "Arc Stats" && \
+echoheader "Arc" && \
 sudo arcstat && \
 echoheader "Memory" && \
 sudo free -m
