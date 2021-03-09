@@ -13,7 +13,7 @@ bashGreen
 echo -n " UPTIME "
 bashReset
 echo "================"
-bashBlue
+bashCyan
 echo "               $btime                             $utime"
 bashReset
 echo
