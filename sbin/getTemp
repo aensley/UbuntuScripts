@@ -10,7 +10,7 @@ fi
 
 SENSORNAME = "$1"
 
-TP=`/usr/bin/sensors -A | grep "${SENSORNAME}" -m 1 | sed -e 's/${SENSORNAME}:[ ]*+//' -e 's/.0[a-zA-Z0-9(=+,.°) ]*//'
+TP=$(/usr/bin/sensors -A | grep "${SENSORNAME}" -m 1 | sed -e 's/${SENSORNAME}:[ ]*+//' -e 's/.0[a-zA-Z0-9(=+,.°) ]*//')
 
 if [ -z $2 ]; then
   echo $TP
