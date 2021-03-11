@@ -111,6 +111,10 @@ installNodejs() {
   toInstall="${toInstall} nodejs"
 }
 
+installVscode() {
+  sudo snap install --classic code
+}
+
 installApps(){
   echoHugeHeader "Installing Apps"
   sudo apt update && sudo apt -y -f install ${toInstall}
@@ -148,6 +152,7 @@ installChoices=$(
     Jdk              "JDK"               off \
     Php              "PHP"               off \
     Nodejs           "Node.js"           off \
+    Vscode           "VS Code"           off \
     3>&1 1>&2 2>&3
 )
 
