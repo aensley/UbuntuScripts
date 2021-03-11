@@ -71,9 +71,10 @@ installChromium() {
 
 installBrave() {
   echoHugeHeader "Installing Brave"
-  wget -qO- https://s3-us-west-2.amazonaws.com/brave-apt/keys.asc | sudo apt-key add -
-  echo "deb [arch=amd64] https://s3-us-west-2.amazonaws.com/brave-apt `lsb_release -sc` main" | sudo tee -a /etc/apt/sources.list.d/brave-`lsb_release -sc`.list
-  toInstall="${toInstall} brave"
+  sudo apt install apt-transport-https curl gnupg
+  curl -s https://brave-browser-apt-release.s3.brave.com/brave-core.asc | sudo apt-key --keyring /etc/apt/trusted.gpg.d/brave-browser-release.gpg add -
+  echo "deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ stable main" | sudo tee /etc/apt/sources.list.d/brave-browser-release.list
+  toInstall="${toInstall} brave-browser"
 }
 
 installLibreOfficeFresh() {
@@ -112,7 +113,7 @@ installPhp() {
 
 installNodejs() {
   echoHugeHeader "Installing Node.js"
-  wget -qO - https://deb.nodesource.com/setup_12.x | sudo -E bash -
+  wget -qO - https://deb.nodesource.com/setup_15.x | sudo -E bash -
   toInstall="${toInstall} nodejs"
 }
 
