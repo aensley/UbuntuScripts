@@ -4,7 +4,6 @@
 
 toRemove=''
 toInstall=''
-pythonInstalled=''
 gnomeExtensionsInstalled=''
 sensorsInstalled=''
 
@@ -32,7 +31,6 @@ removeMedia() {
 
 removeMisc() {
   toRemove="${toRemove} deja-dup* remmina* thunderbird* transmission* vino* xserver-xorg-input-wacom"
-  sudo rm /usr/share/applications/gnome-wacom-panel.desktop
 }
 
 removeApps(){
@@ -45,7 +43,7 @@ installTweaks() {
 }
 
 installGnomeExtensions() {
-  toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions"
+  toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions gir1.2-gtop-2.0 gir1.2-nm-1.0 gir1.2-clutter-1.0"
   gnomeExtensionsInstalled='1'
 }
 
@@ -94,10 +92,6 @@ installEnpass() {
   toInstall="${toInstall} enpass"
 }
 
-installGeditPlugins() {
-  toInstall="${toInstall} gedit-plugins gedit-developer-plugins gedit-plugin-text-size gedit-source-code-browser-plugin"
-}
-
 installJre() {
   toInstall="${toInstall} openjdk-11-jre"
 }
@@ -115,17 +109,6 @@ installNodejs() {
   echoHugeHeader "Installing Node.js"
   wget -qO - https://deb.nodesource.com/setup_15.x | sudo -E bash -
   toInstall="${toInstall} nodejs"
-}
-
-installPython() {
-  pythonInstalled='1'
-  toInstall="${toInstall} python-pip"
-}
-
-installGitHubBackup() {
-  if [ -n "${pythonInstalled}" ]; then
-    sudo pip install -U git+git://github.com/josegonzalez/python-github-backup.git#egg=github-backup
-  fi
 }
 
 installApps(){
@@ -161,13 +144,10 @@ installChoices=$(
     LibreOfficeFresh "LibreOffice Fresh" on \
     Gimp             "GIMP"              off \
     Enpass           "Enpass"            off \
-    GeditPlugins     "Gedit Plugins"     off \
     Jre              "JRE"               off \
     Jdk              "JDK"               off \
     Php              "PHP"               off \
     Nodejs           "Node.js"           off \
-    Python           "Python"            off \
-    GitHubBackup     "GitHub Backup"     off \
     3>&1 1>&2 2>&3
 )
 
