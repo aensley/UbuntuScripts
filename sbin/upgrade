@@ -45,7 +45,7 @@ fi
 if commandExists composer ; then
   echoheader "Updating Composer and Composer Packages"
   sudo -H composer self-update
-  cd ~/.composer/ && composer update
+  cd ~/.config/composer/ && composer update
 fi
 
 exit $?
