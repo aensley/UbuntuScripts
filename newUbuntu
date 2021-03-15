@@ -4,7 +4,6 @@
 
 toRemove=''
 toInstall=''
-pythonInstalled=''
 gnomeExtensionsInstalled=''
 sensorsInstalled=''
 
@@ -32,7 +31,6 @@ removeMedia() {
 
 removeMisc() {
   toRemove="${toRemove} deja-dup* remmina* thunderbird* transmission* vino* xserver-xorg-input-wacom"
-  sudo rm /usr/share/applications/gnome-wacom-panel.desktop
 }
 
 removeApps(){
@@ -45,7 +43,7 @@ installTweaks() {
 }
 
 installGnomeExtensions() {
-  toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions"
+  toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions gir1.2-gtop-2.0 gir1.2-nm-1.0 gir1.2-clutter-1.0"
   gnomeExtensionsInstalled='1'
 }
 
@@ -71,9 +69,10 @@ installChromium() {
 
 installBrave() {
   echoHugeHeader "Installing Brave"
-  wget -qO- https://s3-us-west-2.amazonaws.com/brave-apt/keys.asc | sudo apt-key add -
-  echo "deb [arch=amd64] https://s3-us-west-2.amazonaws.com/brave-apt `lsb_release -sc` main" | sudo tee -a /etc/apt/sources.list.d/brave-`lsb_release -sc`.list
-  toInstall="${toInstall} brave"
+  sudo apt install apt-transport-https curl gnupg
+  curl -s https://brave-browser-apt-release.s3.brave.com/brave-core.asc | sudo apt-key --keyring /etc/apt/trusted.gpg.d/brave-browser-release.gpg add -
+  echo "deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ stable main" | sudo tee /etc/apt/sources.list.d/brave-browser-release.list
+  toInstall="${toInstall} brave-browser"
 }
 
 installLibreOfficeFresh() {
@@ -88,13 +87,9 @@ installGimp() {
 
 installEnpass() {
   echoHugeHeader "Installing Enpass"
-  echo "deb http://repo.sinew.in/ stable main" | sudo tee /etc/apt/sources.list.d/enpass.list
-  wget -O - https://dl.sinew.in/keys/enpass-linux.key | sudo apt-key add -
+  echo "deb https://apt.enpass.io/ stable main" | sudo tee /etc/apt/sources.list.d/enpass.list
+  wget -O - https://apt.enpass.io/keys/enpass-linux.key | sudo apt-key add -
   toInstall="${toInstall} enpass"
-}
-
-installGeditPlugins() {
-  toInstall="${toInstall} gedit-plugins gedit-developer-plugins gedit-plugin-text-size gedit-source-code-browser-plugin"
 }
 
 installJre() {
@@ -112,19 +107,12 @@ installPhp() {
 
 installNodejs() {
   echoHugeHeader "Installing Node.js"
-  wget -qO - https://deb.nodesource.com/setup_12.x | sudo -E bash -
+  wget -qO - https://deb.nodesource.com/setup_15.x | sudo -E bash -
   toInstall="${toInstall} nodejs"
 }
 
-installPython() {
-  pythonInstalled='1'
-  toInstall="${toInstall} python-pip"
-}
-
-installGitHubBackup() {
-  if [ -n "${pythonInstalled}" ]; then
-    sudo pip install -U git+git://github.com/josegonzalez/python-github-backup.git#egg=github-backup
-  fi
+installVscode() {
+  sudo snap install --classic code
 }
 
 installApps(){
@@ -160,13 +148,11 @@ installChoices=$(
     LibreOfficeFresh "LibreOffice Fresh" on \
     Gimp             "GIMP"              off \
     Enpass           "Enpass"            off \
-    GeditPlugins     "Gedit Plugins"     off \
     Jre              "JRE"               off \
     Jdk              "JDK"               off \
     Php              "PHP"               off \
     Nodejs           "Node.js"           off \
-    Python           "Python"            off \
-    GitHubBackup     "GitHub Backup"     off \
+    Vscode           "VS Code"           off \
     3>&1 1>&2 2>&3
 )
 
