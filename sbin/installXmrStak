@@ -104,6 +104,42 @@ getArgs(){
   shift $((OPTIND -1))
 }
 
+power2() {
+  if ! type bc >/dev/null; then
+    if   [ "$1" -gt "8192" ]; then
+      echo "8192"
+    elif [ "$1" -gt "4096" ]; then
+      echo "4096"
+    elif [ "$1" -gt "2048" ]; then
+      echo "2048"
+    elif [ "$1" -gt "1024" ]; then
+      echo "1024"
+    elif [ "$1" -gt "512" ]; then
+      echo "512"
+    elif [ "$1" -gt "256" ]; then
+      echo "256"
+    elif [ "$1" -gt "128" ]; then
+      echo "128"
+    elif [ "$1" -gt "64" ]; then
+      echo "64"
+    elif [ "$1" -gt "32" ]; then
+      echo "32"
+    elif [ "$1" -gt "16" ]; then
+      echo "16"
+    elif [ "$1" -gt "8" ]; then
+      echo "8"
+    elif [ "$1" -gt "4" ]; then
+      echo "4"
+    elif [ "$1" -gt "2" ]; then
+      echo "2"
+    else
+      echo "1"
+    fi
+  else 
+    echo "x=l($1)/l(2); scale=0; 2^((x+0.5)/1)" | bc -l;
+  fi
+}
+
 expectedXmrCpuHashRate() {
 
   # forked from: https://moneroocean.stream/miner/setup_moneroocean_miner.sh
@@ -113,59 +149,21 @@ expectedXmrCpuHashRate() {
     return
   fi
 
-  LSCPU=`lscpu`
-  CPU_SOCKETS=`echo "$LSCPU" | grep "^Socket(s):" | cut -d':' -f2 | sed "s/^[ \t]*//"`
-  if [ -z $CPU_SOCKETS ]; then
-    echo "ERROR: Can't get CPU sockets from lscpu output"
-    return
-  fi
-  CPU_CORES_PER_SOCKET=`echo "$LSCPU" | grep "^Core(s) per socket:" | cut -d':' -f2 | sed "s/^[ \t]*//"`
-  if [ -z $CPU_CORES_PER_SOCKET ]; then
-    echo "ERROR: Can't get CPU cores per socket from lscpu output"
-    return
-  fi
-  CPU_THREADS=`echo "$LSCPU" | grep "^CPU(s):" | cut -d':' -f2 | sed "s/^[ \t]*//"`
-  if [ -z $CPU_THREADS ]; then
-    echo "ERROR: Can't get CPU cores from lscpu output"
-    return
-  fi
-  CPU_MHZ=`echo "$LSCPU" | grep "^CPU MHz:" | cut -d':' -f2 | sed "s/^[ \t]*//"`
-  CPU_MHZ=${CPU_MHZ%.*}
-  if [ -z $CPU_MHZ ]; then
-    echo "ERROR: Can't get CPU MHz from lscpu output"
-    return
-  fi
-  CPU_L1_CACHE=`echo "$LSCPU" | grep "^L1d cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
-  if [ -z $CPU_L1_CACHE ]; then
-    echo "ERROR: Can't get L1 CPU cache from lscpu output"
-    return
-  fi
-  CPU_L2_CACHE=`echo "$LSCPU" | grep "^L2 cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
-  if [ -z $CPU_L2_CACHE ]; then
-    echo "ERROR: Can't get L2 CPU cache from lscpu output"
-    return
-  fi
-  CPU_L3_CACHE=`echo "$LSCPU" | grep "^L3 cache:" | cut -d':' -f2 | sed "s/^[ \t]*//" | sed "s/K\$//"`
-  if [ -z $CPU_L3_CACHE ]; then
-    echo "ERROR: Can't get L3 CPU cache from lscpu output"
-    return
-  fi
-
-  TOTAL_CACHE=$(( $CPU_THREADS*$CPU_L1_CACHE + $CPU_SOCKETS * ($CPU_CORES_PER_SOCKET*$CPU_L2_CACHE + $CPU_L3_CACHE)))
-  if [ -z $TOTAL_CACHE ]; then
-    echo "ERROR: Can't compute total cache"
-    return
-  fi
-  EXP_MONERO_HASHRATE=$(( ($CPU_THREADS < $TOTAL_CACHE / 2048 ? $CPU_THREADS : $TOTAL_CACHE / 2048) * ($CPU_MHZ * 20 / 1000) ))
+  CPU_THREADS=$(nproc)
+  EXP_MONERO_HASHRATE=$(( CPU_THREADS * 700 / 1000))
   if [ -z $EXP_MONERO_HASHRATE ]; then
-    echo "ERROR: Can't compute projected Monero hashrate"
-    return
+    echo "ERROR: Can't compute projected Monero CN hashrate"
+    exit 1
   fi
 
-  echo "CPU Threads:        $CPU_THREADS"
-  echo "CPU Speed:          $CPU_MHZ MHz"
-  echo "CPU Cache:          ${TOTAL_CACHE}KB"
-  echo "Projected hashrate: ~$EXP_MONERO_HASHRATE H/s"
+  PORT=$(( $EXP_MONERO_HASHRATE * 30 ))
+  PORT=$(( $PORT == 0 ? 1 : $PORT ))
+  PORT=`power2 $PORT`
+  PORT=$(( 10000 + $PORT ))
+  if [ -z $PORT ]; then
+    echo "ERROR: Can't compute port"
+    exit 1
+  fi
 
 }
 
