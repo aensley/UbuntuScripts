@@ -14,7 +14,7 @@ while [ -z "$MAKEMKVVERSION" ]; do
 done
 
 echoheader "Installing Pre-requisites"
-sudo apt install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev libqt4-dev
+sudo apt install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
 
 echoheader "Downloading installation files"
 mkdir -p /tmp/makemkv/ && \
