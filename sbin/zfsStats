@@ -6,8 +6,12 @@ echoheader "Zpool Status" && \
 sudo zpool status && \
 echoheader "I/O Status" && \
 sudo zpool iostat -v && \
+echoheader "Snapshot Status" && \
+sudo zfs get usedbysnapshots -t filesystem && \
+echo && \
+sudo zfs list -t snapshot && \
 echoheader "Compress Ratio" && \
-sudo zfs get compressratio && \
+sudo zfs get compressratio -t filesystem && \
 echoheader "Arc" && \
 sudo arcstat && \
 echoheader "Memory" && \

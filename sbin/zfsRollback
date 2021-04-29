@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+echoheader "ZFS Snapshots"
+zfs list -t snapshot
+
+echo && \
+echo -n "You can browse snapshot contents at: " && \
+bashCyan && \
+echo -n "<pool-mount-point>" && \
+bashBold && \
+echo -n "/.zfs/snapshot/" && \
+bashReset && \
+bashCyan && 
+echo "<snapshot-name>" && \
+bashReset && \
+echo
+
+snapshotName=""
+while [ -z "$snapshotName" ]; do
+  read -r -p "Please enter the full name of the snapshot to rollback to: " snapshotName
+done
+
+echo -e "\nTo roll back to the given snapshot, enter the following command:" && \
+bashGreen && echo -e "\n\nsudo zfs rollback -r $snapshotName\n\n" && bashReset && \
+bashBold && bashRed && echo "FIRST VERIFY THAT EVERYTHIHNG IS CORRECT" && bashReset && \
+bashRed && \
+echo -e "\nAll changes made after the snapshot was created will be PERMANENTLY LOST." && \
+echo -e "The active filesystem will revert to the point in time the snapshot was created.\n" && \
+bashReset
