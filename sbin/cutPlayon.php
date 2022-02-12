@@ -71,7 +71,7 @@ function renameVideo($video)
 
 function convertVideo($video, $chapterFile)
 {
-	return runProcess('ffmpeg -f concat -safe 0 -i ' . escapeshellarg($chapterFile) . ' -c copy -c:a copy -y ' . escapeshellarg($video), '', false, true, false, 1);
+	return runProcess('ffmpeg -f concat -safe 0 -i ' . escapeshellarg($chapterFile) . ' -c copy -c:a copy -c:s copy -y ' . escapeshellarg($video), '', false, true, false, 1);
 }
 
 function loopChapters($video, $chapters, $backup)
