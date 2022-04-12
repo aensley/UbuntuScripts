@@ -18,8 +18,10 @@ if ! inGitDir; then
   exit 1
 fi
 
+DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
+
 # Switch to master
-git checkout master && \
+git checkout ${DEFAULT_BRANCH} && \
 # Pull in updates
 git pull && \
 # Checkout the new remote branch
