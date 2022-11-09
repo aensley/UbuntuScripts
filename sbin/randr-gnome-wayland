@@ -1,5 +1,7 @@
 #!/bin/env python3
 
+# https://gitlab.com/Oschowa/gnome-randr
+
 import sys, os, dbus
 from collections import defaultdict
 
