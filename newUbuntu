@@ -13,24 +13,8 @@ echoHugeHeader () {
   echo
 }
 
-removeGames() {
-  toRemove="${toRemove} aisleriot* cheese gnome-mahjongg gnome-mines gnome-sudoku"
-}
-
 removeTracking() {
   toRemove="${toRemove} activity-log-manager apport zeitgeist-datahub"
-}
-
-removeLibreOffice() {
-  toRemove="${toRemove} libreoffice*"
-}
-
-removeMedia() {
-  toRemove="${toRemove} rhythmbox* simple-scan totem*"
-}
-
-removeMisc() {
-  toRemove="${toRemove} deja-dup* remmina* thunderbird* transmission* vino* xserver-xorg-input-wacom"
 }
 
 removeApps(){
@@ -39,28 +23,21 @@ removeApps(){
 }
 
 installTweaks() {
-  toInstall="${toInstall} gnome-tweak-tool"
+  toInstall="${toInstall} gnome-tweaks"
 }
 
 installGnomeExtensions() {
-  toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions gir1.2-gtop-2.0 gir1.2-nm-1.0 gir1.2-clutter-1.0"
+  toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions"
   gnomeExtensionsInstalled='1'
 }
 
 installSensors() {
-  toInstall="${toInstall} lm-sensors hddtemp"
+  toInstall="${toInstall} lm-sensors"
   sensorsInstalled='1'
 }
 
 installVlc() {
   toInstall="${toInstall} vlc"
-}
-
-installChrome() {
-  echoHugeHeader "Installing Chrome"
-  wget -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-  sudo dpkg -i /tmp/chrome.deb
-  rm /tmp/chrome.deb
 }
 
 installChromium() {
@@ -75,12 +52,6 @@ installBrave() {
   toInstall="${toInstall} brave-browser"
 }
 
-installLibreOfficeFresh() {
-  echoHugeHeader "Installing LibreOffice Fresh"
-  sudo add-apt-repository -y ppa:libreoffice/ppa
-  toInstall="${toInstall} libreoffice-calc libreoffice-gnome libreoffice-impress libreoffice-pdfimport libreoffice-style-* libreoffice-writer"
-}
-
 installGimp() {
   toInstall="${toInstall} gimp gimp-data-extras gimp-plugin-registry"
 }
@@ -93,21 +64,16 @@ installEnpass() {
 }
 
 installJre() {
-  toInstall="${toInstall} openjdk-11-jre"
+  toInstall="${toInstall} openjdk-17-jre"
 }
 
 installJdk() {
-  toInstall="${toInstall} openjdk-11-jdk"
-}
-
-installPhp() {
-  echoHugeHeader "Installing PHP"
-  toInstall="${toInstall} php-cli php-curl php-json php-mbstring php-xml php-zip"
+  toInstall="${toInstall} openjdk-17-jdk"
 }
 
 installNodejs() {
   echoHugeHeader "Installing Node.js"
-  wget -qO - https://deb.nodesource.com/setup_15.x | sudo -E bash -
+  wget -qO - https://deb.nodesource.com/setup_18.x | sudo -E bash -
   toInstall="${toInstall} nodejs"
 }
 
@@ -122,17 +88,14 @@ installApps(){
 
 echoHugeHeader "Checking Prereqs"
 sudo apt update && sudo apt -y -f install git
+sudo pro config set apt_news=false
 
 echoHugeHeader "Getting Scripts"
 wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | bash -
 
 removeChoices=$(
   whiptail --title "Select Software to Remove" --checklist "Select Software to Remove" 10 40 5 \
-    Games       "Games"         on \
     Tracking    "Tracking"      on \
-    LibreOffice "LibreOffice"   off \
-    Media       "Media"         on \
-    Misc        "Miscellaneous" on \
     3>&1 1>&2 2>&3
 )
 
@@ -142,17 +105,14 @@ installChoices=$(
     GnomeExtensions  "Gnome Extensions"  on \
     Sensors          "Sensors"           on \
     Vlc              "VLC"               on \
-    Chrome           "Chrome"            on \
-    Chromium         "Chromium"          on \
+    Chromium         "Chromium"          off \
     Brave            "Brave"             on \
-    LibreOfficeFresh "LibreOffice Fresh" on \
-    Gimp             "GIMP"              off \
-    Enpass           "Enpass"            off \
+    Gimp             "GIMP"              on \
+    Enpass           "Enpass"            on \
     Jre              "JRE"               off \
-    Jdk              "JDK"               off \
-    Php              "PHP"               off \
-    Nodejs           "Node.js"           off \
-    Vscode           "VS Code"           off \
+    Jdk              "JDK"               on \
+    Nodejs           "Node.js"           on \
+    Vscode           "VS Code"           on \
     3>&1 1>&2 2>&3
 )
 
@@ -186,9 +146,5 @@ if [ -n "${gnomeExtensionsInstalled}" ]; then
   dconf write /org/gnome/shell/extensions/gravatar/email "'${gravatarEmail}'"
   xdg-open "https://extensions.gnome.org/extension/1262/bing-wallpaper-changer/"
   xdg-open "https://extensions.gnome.org/extension/1015/gravatar/"
-  xdg-open "https://extensions.gnome.org/extension/750/openweather/"
-  xdg-open "https://extensions.gnome.org/extension/8/places-status-indicator/"
-  xdg-open "https://extensions.gnome.org/extension/7/removable-drive-menu/"
-  xdg-open "https://extensions.gnome.org/extension/1145/sensory-perception/"
-  xdg-open "https://extensions.gnome.org/extension/120/system-monitor/"
+  xdg-open "https://extensions.gnome.org/extension/1460/vitals/"
 fi
