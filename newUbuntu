@@ -7,7 +7,7 @@ toInstall=''
 gnomeExtensionsInstalled=''
 sensorsInstalled=''
 
-echoHugeHeader () {
+echoHugeHeader() {
   echo
   echo -e "====================  \033[32m\033[1m$1\033[m ==================== "
   echo
@@ -17,7 +17,7 @@ removeTracking() {
   toRemove="${toRemove} activity-log-manager apport zeitgeist-datahub"
 }
 
-removeApps(){
+removeApps() {
   echoHugeHeader "Removing Apps"
   sudo apt purge -y -f ${toRemove} && sudo apt -y -f --purge autoremove
 }
@@ -52,6 +52,10 @@ installBrave() {
   toInstall="${toInstall} brave-browser"
 }
 
+installRust() {
+  rustInstalled='1'
+}
+
 installGimp() {
   toInstall="${toInstall} gimp gimp-data-extras gimp-plugin-registry"
 }
@@ -81,7 +85,7 @@ installVscode() {
   sudo snap install --classic code
 }
 
-installApps(){
+installApps() {
   echoHugeHeader "Installing Apps"
   sudo apt update && sudo apt -y -f install ${toInstall}
 }
@@ -95,24 +99,25 @@ wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/up
 
 removeChoices=$(
   whiptail --title "Select Software to Remove" --checklist "Select Software to Remove" 10 40 5 \
-    Tracking    "Tracking"      on \
+    Tracking "Tracking" on \
     3>&1 1>&2 2>&3
 )
 
 installChoices=$(
   whiptail --title "Select Software to Install" --checklist "Select Software to Install" 23 50 17 \
-    Tweaks           "Gnome Tweak Tool"  on \
-    GnomeExtensions  "Gnome Extensions"  on \
-    Sensors          "Sensors"           on \
-    Vlc              "VLC"               on \
-    Chromium         "Chromium"          off \
-    Brave            "Brave"             on \
-    Gimp             "GIMP"              on \
-    Enpass           "Enpass"            on \
-    Jre              "JRE"               off \
-    Jdk              "JDK"               on \
-    Nodejs           "Node.js"           on \
-    Vscode           "VS Code"           on \
+    Tweaks "Gnome Tweak Tool" on \
+    GnomeExtensions "Gnome Extensions" on \
+    Sensors "Sensors" on \
+    Vlc "VLC" on \
+    Chromium "Chromium" off \
+    Brave "Brave Browser" on \
+    Gimp "GIMP" on \
+    Enpass "Enpass" on \
+    Vscode "VS Code" on \
+    Jre "JRE 17" off \
+    Jdk "JDK 17" on \
+    Nodejs "Node.js 18" on \
+    Rust "Rust" on \
     3>&1 1>&2 2>&3
 )
 
@@ -130,6 +135,11 @@ for installJob in ${installChoices}; do
 done
 
 installApps
+
+if [ -n "${rustInstalled}" ]; then
+  echoHugeHeader "Installing Rust"
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+fi
 
 if [ -n "${sensorsInstalled}" ]; then
   echoHugeHeader "Setting up Sensors"
