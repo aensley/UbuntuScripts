@@ -31,6 +31,11 @@ if commandExists npm ; then
   cd /usr/lib/node_modules && sudo npm update -g
 fi
 
+if commandExists rustup ; then
+  echoheader "Updating Rust"
+  rustup update
+fi
+
 #if commandExists gem ; then
 #  echoheader "Updating Ruby Gems"
 #  sudo -H gem update --system
