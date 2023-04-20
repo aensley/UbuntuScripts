@@ -8,7 +8,7 @@ uname -r
 
 echoheader "Kernels to Purge"
 
-oldList=`oldKernels`
+oldList=$(oldKernels)
 echo "${oldList}"
 
 echoheader "Purging Old Kernels"
