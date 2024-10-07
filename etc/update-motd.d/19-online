@@ -7,4 +7,4 @@ bashGreen
 echo -n " CURRENTLY ONLINE "
 bashReset
 echo "==============================="
-who --users --heading --ips
+who --users --heading
