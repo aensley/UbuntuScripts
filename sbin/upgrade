@@ -3,7 +3,7 @@
 # Update Ubuntu packages, Snaps, GRUB, Node.js packages, Ruby Gems, Python Packages, and Composer packages.
 
 echoheader "Upgrading System Packages"
-sudo apt update && sudo apt -y -f -u full-upgrade && sudo apt autoremove --purge && sudo apt clean
+sudo apt update && sudo apt full-upgrade -y -f -u && sudo apt autoremove --purge && sudo apt clean
 
 if commandExists snap ; then
   echoheader "Upgrading Snaps"
