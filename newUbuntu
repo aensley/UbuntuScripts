@@ -47,9 +47,7 @@ installChromium() {
 installBrave() {
   echoHugeHeader "Installing Brave"
   sudo apt install apt-transport-https curl gnupg
-  curl -s https://brave-browser-apt-release.s3.brave.com/brave-core.asc | sudo apt-key --keyring /etc/apt/trusted.gpg.d/brave-browser-release.gpg add -
-  echo "deb [arch=amd64] https://brave-browser-apt-release.s3.brave.com/ stable main" | sudo tee /etc/apt/sources.list.d/brave-browser-release.list
-  toInstall="${toInstall} brave-browser"
+  curl -fsS https://dl.brave.com/install.sh | sh
 }
 
 installRust() {
@@ -68,16 +66,16 @@ installEnpass() {
 }
 
 installJre() {
-  toInstall="${toInstall} openjdk-17-jre"
+  toInstall="${toInstall} openjdk-21-jre"
 }
 
 installJdk() {
-  toInstall="${toInstall} openjdk-17-jdk"
+  toInstall="${toInstall} openjdk-21-jdk"
 }
 
 installNodejs() {
   echoHugeHeader "Installing Node.js"
-  wget -qO - https://deb.nodesource.com/setup_18.x | sudo -E bash -
+  wget -qO - https://deb.nodesource.com/setup_22.x | sudo -E bash -
   toInstall="${toInstall} nodejs"
 }
 
@@ -114,9 +112,9 @@ installChoices=$(
     Gimp "GIMP" on \
     Enpass "Enpass" on \
     Vscode "VS Code" on \
-    Jre "JRE 17" off \
-    Jdk "JDK 17" on \
-    Nodejs "Node.js 18" on \
+    Jre "JRE 21" off \
+    Jdk "JDK 21" on \
+    Nodejs "Node.js 22" on \
     Rust "Rust" on \
     3>&1 1>&2 2>&3
 )
