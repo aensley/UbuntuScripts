@@ -95,7 +95,7 @@ sudo apt update && sudo apt -y -f install git
 sudo pro config set apt_news=false
 
 echoHugeHeader "Getting Scripts"
-wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/master/sbin/updateScripts | bash -
+wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/main/sbin/updateScripts | bash -
 
 removeChoices=$(
   whiptail --title "Select Software to Remove" --checklist "Select Software to Remove" 10 40 5 \
