@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-# Set Bash output foreground color to blue.
-
-wget https://wordpress.org/latest.tar.gz && tar -zxf latest.tar.gz && rm latest.tar.gz && cd wordpress && mv ./* ../ && cd ../ && rmdir wordpress && chown -R www-data:www-data .

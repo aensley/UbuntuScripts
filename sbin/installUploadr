@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-
-# Installs/updates the uploadr.py script from https://github.com/trickortweak/flickr-uploader
-
-echoheader "Updating uploadr.py"
-sudo mkdir -p /opt/uploadr/
-sudo wget -O /opt/uploadr/uploadr.py https://raw.githubusercontent.com/trickortweak/flickr-uploader/master/uploadr.py

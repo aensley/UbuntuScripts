@@ -17,7 +17,7 @@ echosmallerheader 'Syncing Git Repo'
 if [ -d ${SCRIPTS_GIT_DIR} ]; then
   git -C ${SCRIPTS_GIT_DIR} checkout -f --quiet
   git -C ${SCRIPTS_GIT_DIR} fetch --all --prune --tags --quiet
-  git -C ${SCRIPTS_GIT_DIR} checkout origin/master --quiet
+  git -C ${SCRIPTS_GIT_DIR} checkout origin/main --quiet
 else
   git clone ${GIT_REPO} ${SCRIPTS_GIT_DIR}
 fi

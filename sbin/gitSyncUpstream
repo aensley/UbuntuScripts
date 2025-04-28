@@ -7,13 +7,13 @@ if ! inGitDir; then
   exit 1
 fi
 
-# Checkout master
-git checkout master && \
+# Checkout main
+git checkout main && \
 # Fetch and merge updates from origin
 git pull && \
 # Fetch upstream updates
 git fetch upstream && \
 # Merge upstream
-git merge -m "Sync with upstream" upstream/master && \
+git merge -m "Sync with upstream" upstream/main && \
 # Push changes back to origin
 git push origin

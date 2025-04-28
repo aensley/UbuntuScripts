@@ -20,7 +20,7 @@ fi
 
 DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
 
-# Switch to master
+# Switch to the default branch (usually main)
 git checkout ${DEFAULT_BRANCH} && \
 # Pull in updates
 git pull && \
