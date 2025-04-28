@@ -1,3 +1,3 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 tail -f /var/log/cloudflared/tunnel.log | jq -r 'select(.headers."Cf-Connecting-Ip"[0] != null) | "\(.time) \(.headers."Cf-Connecting-Ip"[0]) \(.message)"'

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# List running containers in a Docker Compose deployment
+
+sudo docker compose ps

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Restart a Docker Compose deployment
+
+sudo docker compose restart

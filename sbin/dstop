@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Stop a Docker container
+
+sudo docker stop $1

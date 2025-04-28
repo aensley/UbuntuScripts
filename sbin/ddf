@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# List file system usage of docker assets
+
+sudo docker system df

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Start a Docker Compose deployment
+
+sudo docker compose up -d

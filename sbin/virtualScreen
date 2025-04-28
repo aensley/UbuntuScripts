@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Sets up a virtual display and an ADB tunnel over which an android tablet can VNC via USB connection.
 

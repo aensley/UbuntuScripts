@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Docker logs for a named container
+
+sudo docker logs -f $1

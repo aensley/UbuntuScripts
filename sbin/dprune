@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Prune Docker Volumes
+
+sudo docker system prune -a --volumes

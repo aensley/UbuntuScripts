@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Take down a Docker Compose deployment
+
+sudo docker compose down

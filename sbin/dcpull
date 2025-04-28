@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Pull updates for a Docker Compose deployment
+
+sudo docker compose pull

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Return low-level information on Docker objects
+
+sudo docker inspect "$@"
