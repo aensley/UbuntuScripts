@@ -1,3 +1,0 @@
-#!/usr/bin/env bash
-
-/opt/sync/rslsync --config /opt/sync/sync.conf
