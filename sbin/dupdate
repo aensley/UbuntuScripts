@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Pull updates for all local Docker images
+
+docker images --format "{{.Repository}}:{{.Tag}}" | xargs -L1 docker pull
