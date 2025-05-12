@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Pull new images and restart containers as needed in a Docker Compose deployment
+
+sudo docker compose pull && sudo docker compose up -d
