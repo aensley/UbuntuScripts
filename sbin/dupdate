@@ -2,4 +2,4 @@
 
 # Pull updates for all local Docker images
 
-docker images --format "{{.Repository}}:{{.Tag}}" | xargs -L1 docker pull
+sudo docker images --format "{{.Repository}}:{{.Tag}}" | xargs -L1 sudo docker pull
