@@ -89,7 +89,7 @@ installApps() {
 }
 
 echoHugeHeader "Checking Prereqs"
-sudo apt update && sudo apt -y -f install git
+sudo apt update && sudo apt -y -f install git whiptail rsync figlet
 sudo pro config set apt_news=false
 
 echoHugeHeader "Getting Scripts"
