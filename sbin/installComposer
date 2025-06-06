@@ -11,7 +11,6 @@ then
   sudo php /tmp/composer-setup.php --install-dir=/usr/local/bin/ --filename=composer
   RESULT=$?
   rm /tmp/composer-setup.php
-  composer global require nategood/httpful
   composer global require monolog/monolog
   composer global require bramus/monolog-colored-line-formatter
   composer global require aensley/media-organizer
