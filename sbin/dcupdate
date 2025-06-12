@@ -2,4 +2,4 @@
 
 # Pull new images and restart containers as needed in a Docker Compose deployment
 
-sudo docker compose pull && sudo docker compose up -d
+sudo docker compose --env-file *.env pull && sudo docker compose --env-file *.env up -d
