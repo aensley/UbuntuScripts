@@ -2,4 +2,4 @@
 
 # List running containers in a Docker Compose deployment
 
-sudo docker compose --env-file *.env ps
+sudo docker compose ps

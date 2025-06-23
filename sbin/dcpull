@@ -2,4 +2,4 @@
 
 # Pull updates for a Docker Compose deployment
 
-sudo docker compose --env-file *.env pull
+sudo docker compose pull

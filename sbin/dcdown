@@ -2,4 +2,4 @@
 
 # Take down a Docker Compose deployment
 
-sudo docker compose --env-file *.env down
+sudo docker compose down

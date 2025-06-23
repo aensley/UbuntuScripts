@@ -2,4 +2,4 @@
 
 # Start a Docker Compose deployment
 
-sudo docker compose --env-file *.env up -d
+sudo docker compose up -d

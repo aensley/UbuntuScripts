@@ -2,4 +2,4 @@
 
 # Restart a Docker Compose deployment
 
-sudo docker compose --env-file *.env restart
+sudo docker compose restart
