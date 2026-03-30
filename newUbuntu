@@ -180,5 +180,5 @@ fi
 if [ -n "${sensorsInstalled}" ]; then
   echoHugeHeader "Setting up Sensors"
   sudo sensors-detect
-  sudo /etc/init.d/kmod start
+  sudo systemctl start kmod
 fi
