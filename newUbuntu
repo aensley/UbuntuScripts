@@ -4,7 +4,8 @@
 
 toRemove=''
 toInstall=''
-gnomeExtensionsInstalled=''
+flatpakInstalled=''
+rustInstalled=''
 sensorsInstalled=''
 
 echoHugeHeader() {
@@ -13,22 +14,85 @@ echoHugeHeader() {
   echo
 }
 
-removeTracking() {
-  toRemove="${toRemove} activity-log-manager apport zeitgeist-datahub"
-}
+# ---------- Remove ----------
 
 removeApps() {
   echoHugeHeader "Removing Apps"
   sudo apt purge -y -f ${toRemove} && sudo apt -y -f --purge autoremove
 }
 
-installTweaks() {
-  toInstall="${toInstall} gnome-tweaks"
+removeTracking() {
+  toRemove="${toRemove} activity-log-manager apport zeitgeist-datahub"
 }
 
-installGnomeExtensions() {
-  toInstall="${toInstall} chrome-gnome-shell gnome-shell-extensions"
-  gnomeExtensionsInstalled='1'
+# ---------- Install ----------
+
+installApps() {
+  echoHugeHeader "Installing Apps"
+  sudo apt update && sudo apt -y -f install ${toInstall}
+}
+
+installBrave() {
+  echoHugeHeader "Installing Brave"
+  curl -fsS https://dl.brave.com/install.sh | sh
+}
+
+installChromium() {
+  toInstall="${toInstall} chromium-browser"
+}
+
+installEnpass() {
+  echoHugeHeader "Preparing to Install Enpass"
+  echo -e "Types: deb\nURIs: https://apt.enpass.io/\nSuites: stable\nComponents: main\nSigned-By: /etc/apt/trusted.gpg.d/enpass.asc" | sudo tee /etc/apt/sources.list.d/enpass.sources
+  wget -qO- https://apt.enpass.io/keys/enpass-linux.key | sudo tee /etc/apt/trusted.gpg.d/enpass.asc
+  toInstall="${toInstall} enpass"
+}
+
+installDocker() {
+  echoHugeHeader "Preparing to Install Docker"
+  # Add Docker's official GPG key:
+  sudo install -m 0755 -d /etc/apt/keyrings
+  wget -qO- https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc
+  sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+  # Add the repository to Apt sources:
+  sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+  toInstall="${toInstall} docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
+}
+
+installFlatpak() {
+  toInstall="${toInstall} flatpak"
+  flatpakInstalled='1'
+}
+
+installGimp() {
+  toInstall="${toInstall} gimp gimp-data-extras gimp-plugin-registry"
+}
+
+installJdk() {
+  toInstall="${toInstall} openjdk-21-jdk"
+}
+
+installJre() {
+  toInstall="${toInstall} openjdk-21-jre"
+}
+
+installNodejs() {
+  echoHugeHeader "Installing Node.js"
+  wget -qO- https://deb.nodesource.com/setup_24.x | sudo bash -
+  toInstall="${toInstall} nodejs"
+}
+
+installRust() {
+  rustInstalled='1'
 }
 
 installSensors() {
@@ -40,60 +104,23 @@ installVlc() {
   toInstall="${toInstall} vlc"
 }
 
-installChromium() {
-  toInstall="${toInstall} chromium-browser"
-}
-
-installBrave() {
-  echoHugeHeader "Installing Brave"
-  sudo apt install apt-transport-https curl gnupg
-  curl -fsS https://dl.brave.com/install.sh | sh
-}
-
-installRust() {
-  rustInstalled='1'
-}
-
-installGimp() {
-  toInstall="${toInstall} gimp gimp-data-extras gimp-plugin-registry"
-}
-
-installEnpass() {
-  echoHugeHeader "Installing Enpass"
-  echo "deb https://apt.enpass.io/ stable main" | sudo tee /etc/apt/sources.list.d/enpass.list
-  wget -O - https://apt.enpass.io/keys/enpass-linux.key | sudo apt-key add -
-  toInstall="${toInstall} enpass"
-}
-
-installJre() {
-  toInstall="${toInstall} openjdk-21-jre"
-}
-
-installJdk() {
-  toInstall="${toInstall} openjdk-21-jdk"
-}
-
-installNodejs() {
-  echoHugeHeader "Installing Node.js"
-  wget -qO - https://deb.nodesource.com/setup_22.x | sudo -E bash -
-  toInstall="${toInstall} nodejs"
-}
-
 installVscode() {
-  sudo snap install --classic code
+  echoHugeHeader "Preparing to Install VSCode"
+  echo "code code/add-microsoft-repo boolean true" | sudo debconf-set-selections
+  wget -q -O vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
+  toInstall="${toInstall} ./vscode.deb"
 }
 
-installApps() {
-  echoHugeHeader "Installing Apps"
-  sudo apt update && sudo apt -y -f install ${toInstall}
-}
+# ---------- Main Thread ----------
 
 echoHugeHeader "Checking Prereqs"
-sudo apt update && sudo apt -y -f install git whiptail rsync figlet
+sudo apt update && sudo apt -y -f install git whiptail rsync figlet apt-transport-https curl ca-certificates
 sudo pro config set apt_news=false
 
 echoHugeHeader "Getting Scripts"
 wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/main/sbin/updateScripts | bash -
+
+## ----- Get Input -----
 
 removeChoices=$(
   whiptail --title "Select Software to Remove" --checklist "Select Software to Remove" 10 40 5 \
@@ -103,21 +130,23 @@ removeChoices=$(
 
 installChoices=$(
   whiptail --title "Select Software to Install" --checklist "Select Software to Install" 23 50 17 \
-    Tweaks "Gnome Tweak Tool" on \
-    GnomeExtensions "Gnome Extensions" on \
+    Brave "Brave Browser" on \
+    Chromium "Chromium" off \
+    Docker "Docker" off \
+    Enpass "Enpass" on \
+    Flatpak "Flatpak" off \
+    Gimp "GIMP" on \
+    Jdk "JDK 21 (LTS)" on \
+    Jre "JRE 21 (LTS)" off \
+    Nodejs "Node.js 24" on \
+    Rust "Rust" on \
     Sensors "Sensors" on \
     Vlc "VLC" on \
-    Chromium "Chromium" off \
-    Brave "Brave Browser" on \
-    Gimp "GIMP" on \
-    Enpass "Enpass" on \
     Vscode "VS Code" on \
-    Jre "JRE 21" off \
-    Jdk "JDK 21" on \
-    Nodejs "Node.js 22" on \
-    Rust "Rust" on \
     3>&1 1>&2 2>&3
 )
+
+## ----- Remove -----
 
 for removeJob in ${removeChoices}; do
   eval "remove${removeJob}"
@@ -125,14 +154,23 @@ done
 
 removeApps
 
+## ----- Upgrade -----
+
 echoHugeHeader "Upgrading System"
 sudo apt update && sudo apt -y -f -u full-upgrade && sudo apt autoremove --purge && sudo apt clean
+
+## ----- Install -----
 
 for installJob in ${installChoices}; do
   eval "install${installJob}"
 done
 
 installApps
+
+if [ -n "${flatpakInstalled}" ]; then
+  echoHugeHeader "Setting up Flathub Repo"
+  flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+fi
 
 if [ -n "${rustInstalled}" ]; then
   echoHugeHeader "Installing Rust"
@@ -143,16 +181,4 @@ if [ -n "${sensorsInstalled}" ]; then
   echoHugeHeader "Setting up Sensors"
   sudo sensors-detect
   sudo /etc/init.d/kmod start
-fi
-
-echoHugeHeader "Upgrading System"
-/usr/local/sbin/upgrade
-
-if [ -n "${gnomeExtensionsInstalled}" ]; then
-  echoHugeHeader "Opening favorite Gnome extensions"
-  read -p "Please enter your email address for profile Gravatar: " gravatarEmail
-  dconf write /org/gnome/shell/extensions/gravatar/email "'${gravatarEmail}'"
-  xdg-open "https://extensions.gnome.org/extension/1262/bing-wallpaper-changer/"
-  xdg-open "https://extensions.gnome.org/extension/1015/gravatar/"
-  xdg-open "https://extensions.gnome.org/extension/1460/vitals/"
 fi
