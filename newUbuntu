@@ -74,7 +74,7 @@ installFlatpak() {
 }
 
 installGimp() {
-  toInstall="${toInstall} gimp gimp-data-extras gimp-plugin-registry"
+  toInstall="${toInstall} gimp gimp-data-extras"
 }
 
 installJdk() {
@@ -85,6 +85,9 @@ installJre() {
   toInstall="${toInstall} openjdk-21-jre"
 }
 
+installKrita() {
+  toInstall="${toInstall} krita"
+}
 installNodejs() {
   echoHugeHeader "Installing Node.js"
   wget -qO- https://deb.nodesource.com/setup_24.x | sudo bash -
@@ -138,6 +141,7 @@ installChoices=$(
     Gimp "GIMP" on \
     Jdk "JDK 21 (LTS)" on \
     Jre "JRE 21 (LTS)" off \
+    Krita "Krita" on \
     Nodejs "Node.js 24" on \
     Rust "Rust" on \
     Sensors "Sensors" on \
