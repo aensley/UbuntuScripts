@@ -13,7 +13,6 @@ fi
 if commandExists flatpak ; then
   echoheader "Upgrading Flatpaks"
   sudo flatpak update --assumeyes
-  flatpak update --assumeyes
 fi
 
 if commandExists update-grub ; then
