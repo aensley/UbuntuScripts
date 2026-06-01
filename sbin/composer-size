@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+#
+# composer-size — preview a Composer package's dependency tree and on-disk
+# size *before* adding it to your real project. Everything happens in a
+# throwaway temp directory; your project's composer.json is never touched.
+#
+# Usage:
+#   ./composer-size.sh vendor/package [version-constraint] [--tree-only]
+#
+# Examples:
+#   ./composer-size.sh monolog/monolog
+#   ./composer-size.sh symfony/console "^7.0"
+#   ./composer-size.sh guzzlehttp/guzzle --tree-only
+#
+# Options:
+#   --tree-only   Only resolve and print the dependency tree (no download).
+#   -h, --help    Show this help.
+
+set -euo pipefail
+
+# ---- parse args ----------------------------------------------------------
+PACKAGE=""
+CONSTRAINT="*"
+TREE_ONLY=0
+
+for arg in "$@"; do
+  case "$arg" in
+    --tree-only) TREE_ONLY=1 ;;
+    -h|--help)   awk 'NR==1{next} /^#/{sub(/^# ?/,"");print;next} {exit}' "$0"; exit 0 ;;
+    -*)          echo "Unknown option: $arg" >&2; exit 1 ;;
+    */*)         PACKAGE="$arg" ;;     # contains a slash -> it's vendor/package
+    *)           CONSTRAINT="$arg" ;;  # otherwise treat as version constraint
+  esac
+done
+
+if [[ -z "$PACKAGE" ]]; then
+  echo "Usage: $0 vendor/package [version-constraint] [--tree-only]" >&2
+  exit 1
+fi
+
+command -v composer >/dev/null || { echo "Error: composer not found in PATH." >&2; exit 1; }
+
+# ---- scratch project (auto-cleaned on exit) ------------------------------
+WORKDIR="$(mktemp -d)"
+trap 'rm -rf "$WORKDIR"' EXIT
+
+cat > "$WORKDIR/composer.json" <<EOF
+{
+    "require": {
+        "${PACKAGE}": "${CONSTRAINT}"
+    },
+    "config": {
+        "allow-plugins": false
+    }
+}
+EOF
+
+echo "==> Resolving ${PACKAGE}:${CONSTRAINT}"
+echo
+
+# ---- dependency tree (resolution only, nothing downloaded) ---------------
+echo "Dependency tree (what would be installed):"
+echo "------------------------------------------"
+composer update --dry-run --no-dev --working-dir="$WORKDIR" --no-interaction 2>&1 \
+  | grep -oE '(Locking|Installing) [^ ]+/[^ ]+ \([^)]+\)' \
+  | sed -E 's/^(Locking|Installing) /  /' \
+  | sort -u
+echo
+
+if [[ "$TREE_ONLY" -eq 1 ]]; then
+  echo "(--tree-only: skipping download and size measurement)"
+  exit 0
+fi
+
+# ---- real sizes via a throwaway prefer-dist install ----------------------
+echo "==> Downloading dists to measure size (throwaway dir; your project is untouched)"
+composer update --no-dev --prefer-dist --working-dir="$WORKDIR" \
+  --no-interaction --no-progress
+echo
+
+echo "Installed size per package (extracted, largest first):"
+echo "------------------------------------------------------"
+du -sk "$WORKDIR"/vendor/*/* 2>/dev/null \
+  | sort -rn \
+  | awk -v w="$WORKDIR" '{ p=$2; sub(w"/vendor/","",p); printf "  %10d KB  %s\n", $1, p }'
+echo
+
+du -sk "$WORKDIR/vendor" | awk '{ printf "Total installed (extracted) size: %d KB\n", $1 }'
+
+echo
+echo "Note: this is the *extracted* on-disk size. The actual download (compressed"
+echo "dist) is smaller. If a package fails platform checks for your PHP version,"
+echo "re-run with --ignore-platform-reqs added to the composer commands."
