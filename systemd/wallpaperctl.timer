@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily wallpaper update
+
+[Timer]
+OnCalendar=daily
+OnStartupSec=2min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

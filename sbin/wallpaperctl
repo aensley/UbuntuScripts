@@ -1,0 +1,330 @@
+#!/usr/bin/env bash
+
+# wallpaperctl - set a new desktop wallpaper every day from various sources
+
+# A personal script to set the desktop wallpaper to a new image every day from various sources.
+# See the "Sources" section in the usage() function below for the available sources.
+# The script is designed to be run daily from cron or a systemd timer,
+# but can also be invoked manually to switch sources or get status info.
+
+set -euo pipefail
+
+UA="wallpaperctl/1.0 (personal daily wallpaper script)"
+STATE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/wallpaperctl"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/wallpaperctl"
+CONFIG_FILE="$CONFIG_DIR/config"
+LEGACY_SOURCE_FILE="$CONFIG_DIR/source"   # pre-config-file location of the active source
+VALID_SOURCES=(iotd apod bing wmc eo)
+DEFAULT_SOURCE="iotd"
+
+# Built-in fallbacks, used only if the config file is missing the key.
+# All three live in the config file ($CONFIG_FILE) and can be edited there:
+#   source              active wallpaper source (also set via: wallpaperctl set <src>)
+#   screen_ar           screen aspect ratio used if auto-detect fails
+#                       (16:9=1.7778  16:10=1.6  21:9=2.3333  4:3=1.3333)
+#   zoom_min_coverage   crop tolerance; if "zoom" would show less than this
+#                       fraction of the image, use "scaled" instead (0.55 ~= allow up to ~45% crop)
+SCREEN_AR_DEFAULT="1.7778"
+ZOOM_MIN_COVERAGE="0.55"
+
+mkdir -p "$STATE_DIR" "$CONFIG_DIR"
+
+die() { echo "wallpaperctl: $*" >&2; exit 1; }
+
+# --- Config file ------------------------------------------------------------
+
+# Read a key ("key = value") from the config file; prints the value or nothing.
+cfg_get() {
+  local key="$1" v=""
+  [ -r "$CONFIG_FILE" ] || return 0
+  v="$(sed -n -E "s/^[[:space:]]*${key}[[:space:]]*=[[:space:]]*(.*)$/\1/p" "$CONFIG_FILE" | tail -n1)"
+  v="${v%"${v##*[![:space:]]}"}"            # trim trailing whitespace
+  case "$v" in                              # strip surrounding quotes
+    \"*\") v="${v#\"}"; v="${v%\"}" ;;
+    \'*\') v="${v#\'}"; v="${v%\'}" ;;
+  esac
+  printf '%s' "$v"
+}
+
+# Set a key in the config file in place (preserving comments / other keys).
+cfg_set() {
+  local key="$1" val="$2" tmp
+  ensure_config
+  if grep -qE "^[[:space:]]*${key}[[:space:]]*=" "$CONFIG_FILE"; then
+    tmp="$(mktemp)"
+    sed -E "s|^([[:space:]]*${key}[[:space:]]*=[[:space:]]*).*|\\1${val}|" "$CONFIG_FILE" >"$tmp"
+    mv "$tmp" "$CONFIG_FILE"
+  else
+    printf '%s = %s\n' "$key" "$val" >>"$CONFIG_FILE"
+  fi
+}
+
+# Create the config file on first run, migrating the active source from the
+# legacy single-line "source" file if present.
+ensure_config() {
+  [ -f "$CONFIG_FILE" ] && return 0
+  local seed="$DEFAULT_SOURCE"
+  [ -r "$LEGACY_SOURCE_FILE" ] && seed="$(tr -d '[:space:]' < "$LEGACY_SOURCE_FILE")"
+  [ -n "$seed" ] || seed="$DEFAULT_SOURCE"
+  cat > "$CONFIG_FILE" <<EOF
+# wallpaperctl configuration  (key = value; lines starting with # are ignored)
+
+# Active wallpaper source: iotd | apod | bing | wmc | eo
+# Also settable with: wallpaperctl set <source>
+source = $seed
+
+# Screen aspect ratio used only if auto-detection (/sys/class/drm) fails.
+# 16:9 = 1.7778   16:10 = 1.6   21:9 = 2.3333   4:3 = 1.3333
+screen_ar = $SCREEN_AR_DEFAULT
+
+# Crop tolerance for choosing zoom vs scaled. If filling the screen ("zoom")
+# would keep less than this fraction of the image, "scaled" is used instead.
+# Higher = switch to scaled more eagerly; lower = tolerate more cropping.
+zoom_min_coverage = $ZOOM_MIN_COVERAGE
+EOF
+}
+
+# Load config values into the globals (called once before dispatch).
+load_config() {
+  ensure_config
+  local v
+  v="$(cfg_get screen_ar)";         [ -n "$v" ] && SCREEN_AR_DEFAULT="$v"
+  v="$(cfg_get zoom_min_coverage)"; [ -n "$v" ] && ZOOM_MIN_COVERAGE="$v"
+  return 0
+}
+
+# --- Source resolvers -------------------------------------------------------
+# Each prints one or more candidate image URLs (best first), one per line.
+# Empty output  = no image today (e.g. APOD video day) -> skip, keep current.
+# Return code 1 = the fetch itself failed (network etc.).
+
+# NASA Image of the Day
+resolve_iotd() {
+  local feed url
+  feed="$(curl -fsSL --max-time 30 -A "$UA" "https://www.nasa.gov/feeds/iotd-feed/")" || return 1
+  url="$(sed -n 's/.*<enclosure url="\([^"]*\)".*/\1/p' <<<"$feed" | head -1)" || true
+  [ -n "$url" ] && printf '%s\n' "$url"
+  return 0
+}
+
+# Astronomy Picture of the Day
+resolve_apod() {
+  local page rel
+  page="$(curl -fsSL --max-time 30 -A "$UA" "https://apod.nasa.gov/apod/astropix.html")" || return 1
+  rel="$(grep -ioE 'href="image/[^"]+\.(jpg|jpeg|png|gif)"' <<<"$page" \
+         | head -1 | sed -E 's/.*href="([^"]+)".*/\1/I')" || true
+  [ -n "$rel" ] && printf '%s\n' "https://apod.nasa.gov/apod/$rel"
+  return 0
+}
+
+# Bing image of the day
+resolve_bing() {
+  local json urlbase url
+  json="$(curl -fsSL --max-time 30 -A "$UA" \
+    "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US")" || return 1
+  urlbase="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["images"][0]["urlbase"])' <<<"$json")" || true
+  url="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["images"][0]["url"])' <<<"$json")" || true
+  [ -n "$urlbase" ] && printf '%s\n' "https://www.bing.com${urlbase}_UHD.jpg"   # 4K
+  [ -n "$url" ]     && printf '%s\n' "https://www.bing.com${url}"               # 1920x1080 fallback
+  return 0
+}
+
+# Wikimedia Commons Picture of the Day
+# (The global $UA is a descriptive string, as Wikimedia's API policy asks for.)
+resolve_wmc() {
+  local date resp file enc
+  date="$(date +%Y-%m-%d)"
+  resp="$(curl -fsSL --max-time 30 -A "$UA" \
+    "https://commons.wikimedia.org/w/api.php?action=expandtemplates&format=json&prop=wikitext&text=%7B%7BPotd/$date%7D%7D")" || return 1
+  file="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["expandtemplates"]["wikitext"])' <<<"$resp" 2>/dev/null)" || return 1
+  [ -n "$file" ] || return 0
+  enc="$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$file")"
+  resp="$(curl -fsSL --max-time 30 -A "$UA" \
+    "https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url&iiurlwidth=3840&titles=File:$enc")" || return 1
+  python3 -c 'import json,sys
+p=list(json.load(sys.stdin)["query"]["pages"].values())[0]["imageinfo"][0]
+if p.get("thumburl"): print(p["thumburl"])
+print(p["url"])' <<<"$resp" 2>/dev/null || return 1
+  return 0
+}
+
+# NASA Earth Observatory Image of the Day
+resolve_eo() {
+  local feed item base
+  feed="$(curl -fsSL --max-time 30 -A "$UA" \
+    "https://earthobservatory.nasa.gov/feeds/image-of-the-day.rss")" || return 1
+  item="$(awk '/<item>/{f=1} f{print} /<\/item>/{if(f)exit}' <<<"$feed")"
+  base="$(grep -oiE 'https://assets\.science\.nasa\.gov/dynamicimage/[^"?]+\.(jpg|jpeg|png)' <<<"$item" | head -1)" || true
+  [ -n "$base" ] || return 0
+  printf '%s\n' "${base}?w=3840"   # ~4K-wide rendering
+  printf '%s\n' "$base"            # CDN-default size as fallback
+  return 0
+}
+
+# --- Geometry helpers -------------------------------------------------------
+
+# Print "WIDTH HEIGHT" of an image (JPEG/PNG/GIF) using only the Python stdlib.
+image_dims() {
+  python3 - "$1" <<'PY' 2>/dev/null
+import sys, struct
+def dims(path):
+    with open(path, 'rb') as f:
+        head = f.read(26)
+        if len(head) >= 24 and head[:8] == b'\x89PNG\r\n\x1a\n' and head[12:16] == b'IHDR':
+            return struct.unpack('>II', head[16:24])
+        if head[:6] in (b'GIF87a', b'GIF89a'):
+            return struct.unpack('<HH', head[6:10])
+        if head[:2] == b'\xff\xd8':                      # JPEG: walk to the SOF marker
+            f.seek(2)
+            while True:
+                b = f.read(1)
+                if not b: return None
+                if b != b'\xff': continue
+                m = f.read(1)
+                while m == b'\xff': m = f.read(1)        # skip fill bytes
+                if not m: return None
+                mv = m[0]
+                if 0xC0 <= mv <= 0xCF and mv not in (0xC4, 0xC8, 0xCC):
+                    f.read(3)                            # segment length (2) + precision (1)
+                    h, w = struct.unpack('>HH', f.read(4))
+                    return (w, h)
+                seg = f.read(2)
+                if len(seg) < 2: return None
+                f.seek(struct.unpack('>H', seg)[0] - 2, 1)
+    return None
+d = dims(sys.argv[1])
+if d: print(d[0], d[1])
+PY
+}
+
+# Print the primary display's aspect ratio (e.g. 1.77778), or the default.
+screen_ar() {
+  local f modes mode w h
+  for f in /sys/class/drm/*/status; do
+    [ -r "$f" ] && [ "$(cat "$f" 2>/dev/null)" = "connected" ] || continue
+    modes="${f%status}modes"
+    mode="$(head -n1 "$modes" 2>/dev/null)"             # preferred mode, e.g. 3840x2160
+    if [[ "$mode" =~ ^([0-9]+)x([0-9]+)$ ]]; then
+      w="${BASH_REMATCH[1]}"; h="${BASH_REMATCH[2]}"
+      if [ "$h" -gt 0 ]; then awk "BEGIN{printf \"%.5f\", $w/$h}"; return 0; fi
+    fi
+  done
+  printf '%s' "$SCREEN_AR_DEFAULT"
+}
+
+# Choose "zoom" or "scaled" for the given image file.
+pick_picture_option() {
+  local file="$1" dims iw ih
+  dims="$(image_dims "$file")"
+  [ -n "$dims" ] || { echo "zoom"; return; }            # unknown -> safe default
+  iw="${dims% *}"; ih="${dims#* }"
+  awk -v iw="$iw" -v ih="$ih" -v sar="$(screen_ar)" -v thr="$ZOOM_MIN_COVERAGE" 'BEGIN{
+    if (iw<=0 || ih<=0) { print "zoom"; exit }
+    iar = iw/ih
+    cov = (iar < sar) ? iar/sar : sar/iar               # fraction of image kept when zoom-filling
+    print (cov >= thr) ? "zoom" : "scaled"
+  }'
+}
+
+# --- Core -------------------------------------------------------------------
+
+get_source() {
+  local s; s="$(cfg_get source)"
+  [ -n "$s" ] && { printf '%s' "$s"; return; }
+  if [ -r "$LEGACY_SOURCE_FILE" ]; then tr -d '[:space:]' < "$LEGACY_SOURCE_FILE"; else printf '%s' "$DEFAULT_SOURCE"; fi
+}
+
+is_valid() {
+  local s="$1" v
+  for v in "${VALID_SOURCES[@]}"; do [ "$s" = "$v" ] && return 0; done
+  return 1
+}
+
+apply_wallpaper() {
+  local src="$1" candidates dest url ok=0
+  is_valid "$src" || die "unknown source '$src' (valid: ${VALID_SOURCES[*]})"
+
+  if ! candidates="$(resolve_"$src")"; then
+    die "failed to reach $src source"
+  fi
+  if [ -z "$candidates" ]; then
+    echo "wallpaperctl: $src has no image today (e.g. APOD video day); wallpaper unchanged."
+    return 0
+  fi
+
+  dest="$STATE_DIR/$src-$(date +%F).jpg"
+  while IFS= read -r url; do
+    [ -n "$url" ] || continue
+    if curl -fsSL --max-time 120 -A "$UA" "$url" -o "$dest"; then ok=1; break; fi
+  done <<<"$candidates"
+  [ "$ok" -eq 1 ] || die "could not download any image for $src"
+
+  local opt; opt="$(pick_picture_option "$dest")"
+  gsettings set org.gnome.desktop.background picture-uri "file://$dest"
+  gsettings set org.gnome.desktop.background picture-uri-dark "file://$dest"
+  gsettings set org.gnome.desktop.background picture-options "$opt"
+
+  find "$STATE_DIR" -maxdepth 1 -name '*.jpg' -type f -mtime +14 -delete
+  echo "wallpaperctl: set from $src [$(image_dims "$dest" | tr ' ' 'x'), $opt] -> $dest"
+}
+
+usage() {
+  cat <<EOF
+Usage: wallpaperctl <command>
+
+  update            Refresh wallpaper from the active source (default command)
+  set <source>      Switch active source and refresh now
+  status            Show the active source and last image
+  random            Refresh from a randomly chosen source (does not change active)
+  enable            Enable the daily systemd --user timer (wallpaperctl.timer)
+  help              Show this help
+
+Sources:
+  apod   Astronomy Picture of the Day
+  bing   Bing image of the day (4K)
+  eo     NASA Earth Observatory Image of the Day
+  iotd   NASA Image of the Day (default)
+  wmc    Wikimedia Commons Picture of the Day
+EOF
+}
+
+# --- Dispatch ---------------------------------------------------------------
+
+cmd="${1:-update}"
+load_config
+case "$cmd" in
+  update|refresh)
+    apply_wallpaper "$(get_source)"
+    ;;
+  set|use)
+    s="${2:-}"
+    is_valid "$s" || die "set: choose a source (${VALID_SOURCES[*]})"
+    cfg_set source "$s"
+    echo "wallpaperctl: active source is now '$s'"
+    apply_wallpaper "$s"
+    ;;
+  status)
+    echo "Active source:     $(get_source)"
+    latest="$(ls -t "$STATE_DIR"/*.jpg 2>/dev/null | head -1 || true)"
+    [ -n "$latest" ] && echo "Last image:        $latest"
+    method="$(gsettings get org.gnome.desktop.background picture-options 2>/dev/null | tr -d "'")"
+    echo "Display method:    ${method:-unknown}"
+    echo "Zoom min coverage: $ZOOM_MIN_COVERAGE"
+    echo "Screen aspect:     $(screen_ar) (config fallback: $SCREEN_AR_DEFAULT)"
+    echo "Config file:       $CONFIG_FILE"
+    ;;
+  random)
+    apply_wallpaper "${VALID_SOURCES[$((RANDOM % ${#VALID_SOURCES[@]}))]}"
+    ;;
+  enable)
+    systemctl --user daemon-reload
+    systemctl --user enable --now wallpaperctl.timer
+    echo "wallpaperctl: daily timer enabled."
+    ;;
+  -h|--help|help)
+    usage
+    ;;
+  *)
+    die "unknown command '$cmd' (try: wallpaperctl help)"
+    ;;
+esac
