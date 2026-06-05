@@ -7,6 +7,12 @@
 # The script is designed to be run daily from cron or a systemd timer,
 # but can also be invoked manually to switch sources or get status info.
 
+# apod: https://apod.nasa.gov/apod/
+# bing: https://www.bing.com/
+# eo:   https://science.nasa.gov/earth/earth-observatory/image-of-the-day/
+# iotd: https://www.nasa.gov/image-of-the-day/
+# wmc:  https://commons.wikimedia.org/wiki/Commons:Picture_of_the_day
+
 set -euo pipefail
 
 UA="wallpaperctl/1.0 (personal daily wallpaper script)"
