@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 
-# wallpaperctl - set a new desktop wallpaper every day from various sources
+# backdrop - set a new desktop wallpaper every day from various sources
 
 # A personal script to set the desktop wallpaper to a new image every day from various sources.
 # See the "Sources" section in the usage() function below for the available sources.
 # The script is designed to be run daily from cron or a systemd timer,
 # but can also be invoked manually to switch sources or get status info.
 
+# Sources:
 # apod: https://apod.nasa.gov/apod/
 # bing: https://www.bing.com/
 # eo:   https://science.nasa.gov/earth/earth-observatory/image-of-the-day/
@@ -15,27 +16,28 @@
 
 set -euo pipefail
 
-UA="wallpaperctl/1.0 (personal daily wallpaper script)"
-STATE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/wallpaperctl"
-CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/wallpaperctl"
+STATE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/backdrop"
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/backdrop"
 CONFIG_FILE="$CONFIG_DIR/config"
 LEGACY_SOURCE_FILE="$CONFIG_DIR/source"   # pre-config-file location of the active source
 VALID_SOURCES=(iotd apod bing wmc eo)
-DEFAULT_SOURCE="iotd"
 
-# Built-in fallbacks, used only if the config file is missing the key.
-# All three live in the config file ($CONFIG_FILE) and can be edited there:
-#   source              active wallpaper source (also set via: wallpaperctl set <src>)
-#   screen_ar           screen aspect ratio used if auto-detect fails
+# Built-in defaults, can be overriden in the config file.
+# All four live in the config file ($CONFIG_FILE) and can be edited there:
+#   source              active wallpaper source (also set via: backdrop set <src>)
+#   screen_aspect_ratio screen aspect ratio used if auto-detect fails
 #                       (16:9=1.7778  16:10=1.6  21:9=2.3333  4:3=1.3333)
 #   zoom_min_coverage   crop tolerance; if "zoom" would show less than this
 #                       fraction of the image, use "scaled" instead (0.55 ~= allow up to ~45% crop)
-SCREEN_AR_DEFAULT="1.7778"
+#   user_agent          HTTP User-Agent sent with all requests
+SOURCE="iotd"
+SCREEN_ASPECT_RATIO="1.7778"
 ZOOM_MIN_COVERAGE="0.55"
+USER_AGENT="backdrop/1.0 (personal daily wallpaper script)"
 
 mkdir -p "$STATE_DIR" "$CONFIG_DIR"
 
-die() { echo "wallpaperctl: $*" >&2; exit 1; }
+die() { echo "backdrop: $*" >&2; exit 1; }
 
 # --- Config file ------------------------------------------------------------
 
@@ -69,24 +71,27 @@ cfg_set() {
 # legacy single-line "source" file if present.
 ensure_config() {
   [ -f "$CONFIG_FILE" ] && return 0
-  local seed="$DEFAULT_SOURCE"
+  local seed="$SOURCE"
   [ -r "$LEGACY_SOURCE_FILE" ] && seed="$(tr -d '[:space:]' < "$LEGACY_SOURCE_FILE")"
-  [ -n "$seed" ] || seed="$DEFAULT_SOURCE"
+  [ -n "$seed" ] || seed="$SOURCE"
   cat > "$CONFIG_FILE" <<EOF
-# wallpaperctl configuration  (key = value; lines starting with # are ignored)
+# backdrop configuration  (key = value; lines starting with # are ignored)
 
 # Active wallpaper source: iotd | apod | bing | wmc | eo
-# Also settable with: wallpaperctl set <source>
+# Also settable with: backdrop set <source>
 source = $seed
 
 # Screen aspect ratio used only if auto-detection (/sys/class/drm) fails.
 # 16:9 = 1.7778   16:10 = 1.6   21:9 = 2.3333   4:3 = 1.3333
-screen_ar = $SCREEN_AR_DEFAULT
+screen_aspect_ratio = $SCREEN_ASPECT_RATIO
 
 # Crop tolerance for choosing zoom vs scaled. If filling the screen ("zoom")
 # would keep less than this fraction of the image, "scaled" is used instead.
 # Higher = switch to scaled more eagerly; lower = tolerate more cropping.
 zoom_min_coverage = $ZOOM_MIN_COVERAGE
+
+# HTTP User-Agent string sent with all requests. Override if a source blocks the default.
+# user_agent = backdrop/1.0 (personal daily wallpaper script)
 EOF
 }
 
@@ -94,8 +99,9 @@ EOF
 load_config() {
   ensure_config
   local v
-  v="$(cfg_get screen_ar)";         [ -n "$v" ] && SCREEN_AR_DEFAULT="$v"
+  v="$(cfg_get screen_aspect_ratio)"; [ -n "$v" ] && SCREEN_ASPECT_RATIO="$v"
   v="$(cfg_get zoom_min_coverage)"; [ -n "$v" ] && ZOOM_MIN_COVERAGE="$v"
+  v="$(cfg_get user_agent)";        [ -n "$v" ] && USER_AGENT="$v"
   return 0
 }
 
@@ -107,7 +113,7 @@ load_config() {
 # NASA Image of the Day
 resolve_iotd() {
   local feed url
-  feed="$(curl -fsSL --max-time 30 -A "$UA" "https://www.nasa.gov/feeds/iotd-feed/")" || return 1
+  feed="$(curl -fsSL --max-time 30 -A "$USER_AGENT" "https://www.nasa.gov/feeds/iotd-feed/")" || return 1
   url="$(sed -n 's/.*<enclosure url="\([^"]*\)".*/\1/p' <<<"$feed" | head -1)" || true
   [ -n "$url" ] && printf '%s\n' "$url"
   return 0
@@ -116,7 +122,7 @@ resolve_iotd() {
 # Astronomy Picture of the Day
 resolve_apod() {
   local page rel
-  page="$(curl -fsSL --max-time 30 -A "$UA" "https://apod.nasa.gov/apod/astropix.html")" || return 1
+  page="$(curl -fsSL --max-time 30 -A "$USER_AGENT" "https://apod.nasa.gov/apod/astropix.html")" || return 1
   rel="$(grep -ioE 'href="image/[^"]+\.(jpg|jpeg|png|gif)"' <<<"$page" \
          | head -1 | sed -E 's/.*href="([^"]+)".*/\1/I')" || true
   [ -n "$rel" ] && printf '%s\n' "https://apod.nasa.gov/apod/$rel"
@@ -126,7 +132,7 @@ resolve_apod() {
 # Bing image of the day
 resolve_bing() {
   local json urlbase url
-  json="$(curl -fsSL --max-time 30 -A "$UA" \
+  json="$(curl -fsSL --max-time 30 -A "$USER_AGENT" \
     "https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US")" || return 1
   urlbase="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["images"][0]["urlbase"])' <<<"$json")" || true
   url="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["images"][0]["url"])' <<<"$json")" || true
@@ -136,16 +142,16 @@ resolve_bing() {
 }
 
 # Wikimedia Commons Picture of the Day
-# (The global $UA is a descriptive string, as Wikimedia's API policy asks for.)
+# (The global $USER_AGENT is a descriptive string, as Wikimedia's API policy asks for.)
 resolve_wmc() {
   local date resp file enc
   date="$(date +%Y-%m-%d)"
-  resp="$(curl -fsSL --max-time 30 -A "$UA" \
+  resp="$(curl -fsSL --max-time 30 -A "$USER_AGENT" \
     "https://commons.wikimedia.org/w/api.php?action=expandtemplates&format=json&prop=wikitext&text=%7B%7BPotd/$date%7D%7D")" || return 1
   file="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["expandtemplates"]["wikitext"])' <<<"$resp" 2>/dev/null)" || return 1
   [ -n "$file" ] || return 0
   enc="$(python3 -c 'import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))' "$file")"
-  resp="$(curl -fsSL --max-time 30 -A "$UA" \
+  resp="$(curl -fsSL --max-time 30 -A "$USER_AGENT" \
     "https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url&iiurlwidth=3840&titles=File:$enc")" || return 1
   python3 -c 'import json,sys
 p=list(json.load(sys.stdin)["query"]["pages"].values())[0]["imageinfo"][0]
@@ -157,7 +163,7 @@ print(p["url"])' <<<"$resp" 2>/dev/null || return 1
 # NASA Earth Observatory Image of the Day
 resolve_eo() {
   local feed item base
-  feed="$(curl -fsSL --max-time 30 -A "$UA" \
+  feed="$(curl -fsSL --max-time 30 -A "$USER_AGENT" \
     "https://earthobservatory.nasa.gov/feeds/image-of-the-day.rss")" || return 1
   item="$(awk '/<item>/{f=1} f{print} /<\/item>/{if(f)exit}' <<<"$feed")"
   base="$(grep -oiE 'https://assets\.science\.nasa\.gov/dynamicimage/[^"?]+\.(jpg|jpeg|png)' <<<"$item" | head -1)" || true
@@ -215,7 +221,7 @@ screen_ar() {
       if [ "$h" -gt 0 ]; then awk "BEGIN{printf \"%.5f\", $w/$h}"; return 0; fi
     fi
   done
-  printf '%s' "$SCREEN_AR_DEFAULT"
+  printf '%s' "$SCREEN_ASPECT_RATIO"
 }
 
 # Choose "zoom" or "scaled" for the given image file.
@@ -237,7 +243,7 @@ pick_picture_option() {
 get_source() {
   local s; s="$(cfg_get source)"
   [ -n "$s" ] && { printf '%s' "$s"; return; }
-  if [ -r "$LEGACY_SOURCE_FILE" ]; then tr -d '[:space:]' < "$LEGACY_SOURCE_FILE"; else printf '%s' "$DEFAULT_SOURCE"; fi
+  if [ -r "$LEGACY_SOURCE_FILE" ]; then tr -d '[:space:]' < "$LEGACY_SOURCE_FILE"; else printf '%s' "$SOURCE"; fi
 }
 
 is_valid() {
@@ -254,14 +260,14 @@ apply_wallpaper() {
     die "failed to reach $src source"
   fi
   if [ -z "$candidates" ]; then
-    echo "wallpaperctl: $src has no image today (e.g. APOD video day); wallpaper unchanged."
+    echo "backdrop: $src has no image today (e.g. APOD video day); wallpaper unchanged."
     return 0
   fi
 
   dest="$STATE_DIR/$src-$(date +%F).jpg"
   while IFS= read -r url; do
     [ -n "$url" ] || continue
-    if curl -fsSL --max-time 120 -A "$UA" "$url" -o "$dest"; then ok=1; break; fi
+    if curl -fsSL --max-time 120 -A "$USER_AGENT" "$url" -o "$dest"; then ok=1; break; fi
   done <<<"$candidates"
   [ "$ok" -eq 1 ] || die "could not download any image for $src"
 
@@ -271,18 +277,18 @@ apply_wallpaper() {
   gsettings set org.gnome.desktop.background picture-options "$opt"
 
   find "$STATE_DIR" -maxdepth 1 -name '*.jpg' -type f -mtime +14 -delete
-  echo "wallpaperctl: set from $src [$(image_dims "$dest" | tr ' ' 'x'), $opt] -> $dest"
+  echo "backdrop: set from $src [$(image_dims "$dest" | tr ' ' 'x'), $opt] -> $dest"
 }
 
 usage() {
   cat <<EOF
-Usage: wallpaperctl <command>
+Usage: backdrop <command>
 
   update            Refresh wallpaper from the active source (default command)
   set <source>      Switch active source and refresh now
   status            Show the active source and last image
   random            Refresh from a randomly chosen source (does not change active)
-  enable            Enable the daily systemd --user timer (wallpaperctl.timer)
+  enable            Enable the daily systemd --user timer (backdrop.timer)
   help              Show this help
 
 Sources:
@@ -306,7 +312,7 @@ case "$cmd" in
     s="${2:-}"
     is_valid "$s" || die "set: choose a source (${VALID_SOURCES[*]})"
     cfg_set source "$s"
-    echo "wallpaperctl: active source is now '$s'"
+    echo "backdrop: active source is now '$s'"
     apply_wallpaper "$s"
     ;;
   status)
@@ -316,7 +322,7 @@ case "$cmd" in
     method="$(gsettings get org.gnome.desktop.background picture-options 2>/dev/null | tr -d "'")"
     echo "Display method:    ${method:-unknown}"
     echo "Zoom min coverage: $ZOOM_MIN_COVERAGE"
-    echo "Screen aspect:     $(screen_ar) (config fallback: $SCREEN_AR_DEFAULT)"
+    echo "Screen aspect:     $(screen_ar) (config fallback: $SCREEN_ASPECT_RATIO)"
     echo "Config file:       $CONFIG_FILE"
     ;;
   random)
@@ -324,13 +330,13 @@ case "$cmd" in
     ;;
   enable)
     systemctl --user daemon-reload
-    systemctl --user enable --now wallpaperctl.timer
-    echo "wallpaperctl: daily timer enabled."
+    systemctl --user enable --now backdrop.timer
+    echo "backdrop: daily timer enabled."
     ;;
   -h|--help|help)
     usage
     ;;
   *)
-    die "unknown command '$cmd' (try: wallpaperctl help)"
+    die "unknown command '$cmd' (try: backdrop help)"
     ;;
 esac
