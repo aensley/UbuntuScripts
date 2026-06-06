@@ -34,6 +34,7 @@ SOURCE="iotd"
 SCREEN_ASPECT_RATIO="1.7778"
 ZOOM_MIN_COVERAGE="0.55"
 USER_AGENT="backdrop/1.0 (personal daily wallpaper script)"
+TIMER_TIME="08:00"
 
 mkdir -p "$STATE_DIR" "$CONFIG_DIR"
 
@@ -92,6 +93,10 @@ zoom_min_coverage = $ZOOM_MIN_COVERAGE
 
 # HTTP User-Agent string sent with all requests. Override if a source blocks the default.
 # user_agent = backdrop/1.0 (personal daily wallpaper script)
+
+# Time of day to run the daily wallpaper update (HH:MM, 24-hour format).
+# Also settable with: backdrop set-time HH:MM
+timer_time = $TIMER_TIME
 EOF
 }
 
@@ -102,6 +107,7 @@ load_config() {
   v="$(cfg_get screen_aspect_ratio)"; [ -n "$v" ] && SCREEN_ASPECT_RATIO="$v"
   v="$(cfg_get zoom_min_coverage)"; [ -n "$v" ] && ZOOM_MIN_COVERAGE="$v"
   v="$(cfg_get user_agent)";        [ -n "$v" ] && USER_AGENT="$v"
+  v="$(cfg_get timer_time)";        [ -n "$v" ] && TIMER_TIME="$v"
   return 0
 }
 
@@ -240,6 +246,20 @@ pick_picture_option() {
 
 # --- Core -------------------------------------------------------------------
 
+# Write a systemd drop-in that sets the timer's OnCalendar to HH:MM.
+apply_timer_time() {
+  local time="$1"
+  local dropin_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/backdrop.timer.d"
+  mkdir -p "$dropin_dir"
+  # Empty OnCalendar= clears the inherited value before setting the new one.
+  cat > "$dropin_dir/time.conf" <<EOF
+[Timer]
+OnCalendar=
+OnCalendar=*-*-* ${time}:00
+EOF
+  systemctl --user daemon-reload
+}
+
 get_source() {
   local s; s="$(cfg_get source)"
   [ -n "$s" ] && { printf '%s' "$s"; return; }
@@ -286,6 +306,7 @@ Usage: backdrop <command>
 
   update            Refresh wallpaper from the active source (default command)
   set <source>      Switch active source and refresh now
+  set-time <HH:MM>  Set the daily run time (24-hour); restarts timer if active
   status            Show the active source and last image
   random            Refresh from a randomly chosen source (does not change active)
   enable            Enable the daily systemd --user timer (backdrop.timer)
@@ -329,9 +350,21 @@ case "$cmd" in
     apply_wallpaper "${VALID_SOURCES[$((RANDOM % ${#VALID_SOURCES[@]}))]}"
     ;;
   enable)
-    systemctl --user daemon-reload
+    apply_timer_time "$TIMER_TIME"
     systemctl --user enable --now backdrop.timer
-    echo "backdrop: daily timer enabled."
+    echo "backdrop: daily timer enabled (runs at $TIMER_TIME)."
+    ;;
+  set-time)
+    t="${2:-}"
+    [[ "$t" =~ ^([01][0-9]|2[0-3]):[0-5][0-9]$ ]] || die "set-time: expected HH:MM (24-hour), e.g. 08:00"
+    cfg_set timer_time "$t"
+    apply_timer_time "$t"
+    if systemctl --user is-active --quiet backdrop.timer 2>/dev/null; then
+      systemctl --user restart backdrop.timer
+      echo "backdrop: timer time set to $t and timer restarted."
+    else
+      echo "backdrop: timer time set to $t (run 'backdrop enable' to start the timer)."
+    fi
     ;;
   -h|--help|help)
     usage
