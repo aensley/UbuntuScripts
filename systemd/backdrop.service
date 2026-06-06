@@ -1,8 +1,0 @@
-[Unit]
-Description=Set daily wallpaper from active source
-After=graphical-session.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/local/sbin/backdrop update
