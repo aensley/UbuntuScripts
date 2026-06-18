@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# win10-makeover - turn Xubuntu 26.04 (Xfce 4.20) into a Windows-10-style
+# xfc-win10-look - turn Xubuntu 26.04 (Xfce 4.20) into a Windows-10-style
 # desktop in one shot. Combines three earlier scripts:
 #   1. B00merang Windows-10 GTK + xfwm4 (window border) + icon themes,
 #      Windows-style titlebars (left title, right min/max/close, no shade),
@@ -10,7 +10,7 @@
 #      works as a modifier for the tiling shortcuts (via xcape).
 # It also writes a revert script for the visual + Super-tap changes.
 #
-# Usage:  ./win10-makeover.sh [light|dark]      (default: dark)
+# Usage:  ./xfce-win10-look [light|dark]      (default: dark)
 # Run as your normal user - NOT root / NOT with sudo. Safe to re-run.
 #
 set -euo pipefail
@@ -98,7 +98,7 @@ OLD_TILE=$(cur xfwm4 /general/tile_on_move true)
 
 cat > "$BACKUP" <<EOF
 #!/usr/bin/env bash
-# Auto-generated revert for win10-makeover.sh (best-effort: restores the look
+# Auto-generated revert for xfce-win10-look (restores the look
 # and removes the Super-tap helper; leaves the Super+arrow tiling shortcuts).
 xfconf-query -c xsettings -p /Net/ThemeName      -s "$OLD_GTK"
 xfconf-query -c xsettings -p /Net/IconThemeName  -s "$OLD_ICON"
