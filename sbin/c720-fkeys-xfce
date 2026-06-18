@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# c720-fkeys - map the Acer C720 top row to media key actions on Xubuntu (Xfce/X11).
+# c720-fkeys-xfce - map the Acer C720 top row to media key actions on Xubuntu (Xfce/X11).
 #
 #   F1  -> browser back        F6  -> brightness down
 #   F2  -> browser forward     F7  -> brightness up
