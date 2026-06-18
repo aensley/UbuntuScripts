@@ -1,0 +1,185 @@
+#!/usr/bin/env bash
+#
+# win10-makeover.sh — turn Xubuntu 26.04 (Xfce 4.20) into a Windows-10-style
+# desktop in one shot. Combines three earlier scripts:
+#   1. B00merang Windows-10 GTK + xfwm4 (window border) + icon themes,
+#      Windows-style titlebars (left title, right min/max/close, no shade),
+#      and drag-to-edge snapping.
+#   2. Super + Left/Right/Up/Down tiling keyboard shortcuts.
+#   3. Super *tap* opens the Whisker (Start) menu while Super *held* still
+#      works as a modifier for the tiling shortcuts (via xcape).
+# It also writes a revert script for the visual + Super-tap changes.
+#
+# Usage:  ./win10-makeover.sh [light|dark]      (default: dark)
+# Run as your normal user — NOT root / NOT with sudo. Safe to re-run.
+#
+set -euo pipefail
+
+# ---------------------------------------------------------------- config ----
+VARIANT="${1:-dark}"
+case "$VARIANT" in
+  light) GTK_REPO="https://github.com/B00merang-Project/Windows-10.git"
+         ICON_REPO="https://github.com/B00merang-Artwork/Windows-10.git" ;;
+  dark)  GTK_REPO="https://github.com/B00merang-Project/Windows-10-Dark.git"
+         ICON_REPO="https://github.com/B00merang-Artwork/Windows-10-Dark.git" ;;
+  *) echo "Usage: $0 [light|dark]" >&2; exit 1 ;;
+esac
+
+THEME_NAME="Windows-10"
+ICON_NAME="Windows-10"
+THEME_DIR="$HOME/.themes/$THEME_NAME"
+ICON_DIR="$HOME/.icons/$ICON_NAME"
+BACKUP="$HOME/.win10-look-revert.sh"
+
+TRIGGER_XFCONF="<Alt>F1"        # Xfce name for the combo xcape emits on a Super tap
+XCAPE_MAP="Super_L=Alt_L|F1"    # xcape name for that same combo
+XCAPE_TIMEOUT=250               # ms; lone Super held longer than this won't fire the menu
+
+# -------------------------------------------------------- safety checks ----
+if [ "$(id -u)" -eq 0 ]; then
+  echo "Don't run this as root — it installs themes into your home directory." >&2
+  exit 1
+fi
+if ! command -v xfconf-query >/dev/null 2>&1; then
+  echo "xfconf-query not found — are you on an Xfce/Xubuntu session?" >&2
+  exit 1
+fi
+
+# --------------------------------------------------------- dependencies ----
+need_pkg=()
+command -v git   >/dev/null 2>&1 || need_pkg+=(git)
+command -v xcape >/dev/null 2>&1 || need_pkg+=(xcape)
+if [ "${#need_pkg[@]}" -gt 0 ]; then
+  echo "Installing: ${need_pkg[*]}"
+  sudo apt-get update && sudo apt-get install -y "${need_pkg[@]}"
+fi
+
+# --------------------------------------------------------------- helpers ----
+# Read a current xfconf value, falling back to $3 if unset.
+cur() { xfconf-query -c "$1" -p "$2" 2>/dev/null || echo "$3"; }
+
+# Clone a theme repo, or fast-forward it if already present.
+clone_or_update() {
+  local repo="$1" dest="$2"
+  if [ -d "$dest/.git" ]; then
+    echo "  updating $(basename "$dest")"
+    git -C "$dest" pull --ff-only --quiet || true
+  else
+    echo "  cloning $(basename "$dest")"
+    rm -rf "$dest"
+    git clone --depth 1 --quiet "$repo" "$dest"
+  fi
+}
+
+# Bind an xfwm4 action to a key combo, clearing any existing shortcut already
+# using that action first (xfwm4 misbehaves if one action has two shortcuts).
+set_wm_shortcut() {
+  local action="$1" combo="$2" existing p
+  existing=$(xfconf-query -c xfce4-keyboard-shortcuts -p /xfwm4/custom -lv 2>/dev/null \
+             | awk -v a="$action" '$NF==a {print $1}') || true
+  if [ -n "$existing" ]; then
+    while read -r p; do
+      [ -n "$p" ] && { xfconf-query -c xfce4-keyboard-shortcuts -p "$p" -r 2>/dev/null || true; }
+    done <<< "$existing"
+  fi
+  xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/$combo" -r 2>/dev/null || true
+  xfconf-query -c xfce4-keyboard-shortcuts -np "/xfwm4/custom/$combo" -t string -s "$action" 2>/dev/null \
+    || xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/$combo" -s "$action"
+}
+
+# ----------------------------------- 1. capture look + write revert script ----
+echo "Saving revert script to $BACKUP"
+OLD_GTK=$(cur xsettings /Net/ThemeName Greybird)
+OLD_ICON=$(cur xsettings /Net/IconThemeName elementary-xfce)
+OLD_WM=$(cur xfwm4 /general/theme Greybird)
+OLD_ALIGN=$(cur xfwm4 /general/title_alignment center)
+OLD_BTN=$(cur xfwm4 /general/button_layout "O|SHMC")
+OLD_TILE=$(cur xfwm4 /general/tile_on_move true)
+
+cat > "$BACKUP" <<EOF
+#!/usr/bin/env bash
+# Auto-generated revert for win10-makeover.sh (best-effort: restores the look
+# and removes the Super-tap helper; leaves the Super+arrow tiling shortcuts).
+xfconf-query -c xsettings -p /Net/ThemeName      -s "$OLD_GTK"
+xfconf-query -c xsettings -p /Net/IconThemeName  -s "$OLD_ICON"
+xfconf-query -c xfwm4 -p /general/theme           -s "$OLD_WM"
+xfconf-query -c xfwm4 -p /general/title_alignment -s "$OLD_ALIGN"
+xfconf-query -c xfwm4 -p /general/button_layout   -s "$OLD_BTN"
+xfconf-query -c xfwm4 -p /general/tile_on_move    -s $OLD_TILE
+rm -f "$HOME/.config/autostart/xcape-superkey.desktop"
+pkill -x xcape 2>/dev/null || true
+xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$TRIGGER_XFCONF" -r 2>/dev/null || true
+echo "Reverted visuals and removed the Super-tap helper. Log out/in to be sure."
+EOF
+chmod +x "$BACKUP"
+
+# ----------------------------------------------- 2. install + apply themes ----
+echo "Installing themes ($VARIANT)..."
+mkdir -p "$HOME/.themes" "$HOME/.icons"
+clone_or_update "$GTK_REPO"  "$THEME_DIR"
+clone_or_update "$ICON_REPO" "$ICON_DIR"
+gtk-update-icon-cache -f "$ICON_DIR" >/dev/null 2>&1 || true
+
+xfconf-query -c xsettings -p /Net/ThemeName     -s "$THEME_NAME"
+xfconf-query -c xsettings -p /Net/IconThemeName -s "$ICON_NAME"
+xfconf-query -c xfwm4     -p /general/theme      -s "$THEME_NAME"
+# Windows-style titlebars + drag-to-edge snapping
+xfconf-query -c xfwm4 -p /general/title_alignment -s left
+xfconf-query -c xfwm4 -p /general/button_layout   -s "O|HMC"
+xfconf-query -c xfwm4 -p /general/tile_on_move    -s true
+
+# --------------------------------------- 3. Super+arrow tiling shortcuts ----
+echo "Setting Super+arrow tiling shortcuts..."
+set_wm_shortcut tile_left_key       "<Super>Left"
+set_wm_shortcut tile_right_key      "<Super>Right"
+set_wm_shortcut maximize_window_key "<Super>Up"
+set_wm_shortcut hide_window_key     "<Super>Down"
+
+# --------------- 4. Super tap -> Whisker; Super held -> modifier (xcape) ----
+# We deliberately do NOT bind Super by itself in Xfce — on X11 that grabs the
+# key and kills Super+arrow. Instead Super stays a pure modifier, and xcape
+# turns a Super tap-and-release into Alt+F1, which we bind to the menu.
+echo "Wiring up Super-tap -> Whisker menu..."
+for k in Super_L Super_R; do
+  xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$k" -r 2>/dev/null || true
+done
+xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$TRIGGER_XFCONF" -r 2>/dev/null || true
+xfconf-query -c xfce4-keyboard-shortcuts -np "/commands/custom/$TRIGGER_XFCONF" \
+  -t string -s "xfce4-popup-whiskermenu" 2>/dev/null \
+  || xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$TRIGGER_XFCONF" \
+       -s "xfce4-popup-whiskermenu"
+
+mkdir -p "$HOME/.config/autostart"
+cat > "$HOME/.config/autostart/xcape-superkey.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=xcape (Super tap -> Whisker menu)
+Comment=Super tap opens Whisker; Super held stays a modifier for tiling
+Exec=xcape -t $XCAPE_TIMEOUT -e "$XCAPE_MAP"
+X-GNOME-Autostart-enabled=true
+EOF
+
+pkill -x xcape 2>/dev/null || true
+xcape -t "$XCAPE_TIMEOUT" -e "$XCAPE_MAP"
+
+# ------------------------------------------------------------------ done ----
+echo
+echo "All set ($VARIANT). Summary:"
+echo "  - Windows-10 theme, icons, and window borders applied"
+echo "  - Super + Left/Right -> tile halves;  Super + Up/Down -> maximize/minimize"
+echo "  - Drag a window to a screen edge -> snaps too"
+echo "  - Tap Super -> Whisker menu;  hold Super + arrow -> tile"
+echo "  - Undo the look with: $BACKUP"
+echo
+echo "Most changes apply live; log out and back in if anything looks half-applied."
+echo "The panel layout (single bottom bar + window buttons) is still a manual step."
+
+# ---------------------------------------------------------------------------
+# OPTIONAL quarter tiling — xfwm4 doesn't chain like Windows, so corners need
+# their own keys. Uncomment to use the numpad (turn NumLock OFF):
+#
+# set_wm_shortcut tile_up_left_key    "<Super>KP_Home"   # numpad 7 -> top-left
+# set_wm_shortcut tile_up_right_key   "<Super>KP_Prior"  # numpad 9 -> top-right
+# set_wm_shortcut tile_down_left_key  "<Super>KP_End"    # numpad 1 -> bottom-left
+# set_wm_shortcut tile_down_right_key "<Super>KP_Next"   # numpad 3 -> bottom-right
+# ---------------------------------------------------------------------------
