@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# win10-makeover.sh — turn Xubuntu 26.04 (Xfce 4.20) into a Windows-10-style
+# win10-makeover.sh - turn Xubuntu 26.04 (Xfce 4.20) into a Windows-10-style
 # desktop in one shot. Combines three earlier scripts:
 #   1. B00merang Windows-10 GTK + xfwm4 (window border) + icon themes,
 #      Windows-style titlebars (left title, right min/max/close, no shade),
@@ -11,7 +11,7 @@
 # It also writes a revert script for the visual + Super-tap changes.
 #
 # Usage:  ./win10-makeover.sh [light|dark]      (default: dark)
-# Run as your normal user — NOT root / NOT with sudo. Safe to re-run.
+# Run as your normal user - NOT root / NOT with sudo. Safe to re-run.
 #
 set -euo pipefail
 
@@ -37,11 +37,11 @@ XCAPE_TIMEOUT=250               # ms; lone Super held longer than this won't fir
 
 # -------------------------------------------------------- safety checks ----
 if [ "$(id -u)" -eq 0 ]; then
-  echo "Don't run this as root — it installs themes into your home directory." >&2
+  echo "Don't run this as root - it installs themes into your home directory." >&2
   exit 1
 fi
 if ! command -v xfconf-query >/dev/null 2>&1; then
-  echo "xfconf-query not found — are you on an Xfce/Xubuntu session?" >&2
+  echo "xfconf-query not found - are you on an Xfce/Xubuntu session?" >&2
   exit 1
 fi
 
@@ -136,7 +136,7 @@ set_wm_shortcut maximize_window_key "<Super>Up"
 set_wm_shortcut hide_window_key     "<Super>Down"
 
 # --------------- 4. Super tap -> Whisker; Super held -> modifier (xcape) ----
-# We deliberately do NOT bind Super by itself in Xfce — on X11 that grabs the
+# We deliberately do NOT bind Super by itself in Xfce - on X11 that grabs the
 # key and kills Super+arrow. Instead Super stays a pure modifier, and xcape
 # turns a Super tap-and-release into Alt+F1, which we bind to the menu.
 echo "Wiring up Super-tap -> Whisker menu..."
@@ -175,7 +175,7 @@ echo "Most changes apply live; log out and back in if anything looks half-applie
 echo "The panel layout (single bottom bar + window buttons) is still a manual step."
 
 # ---------------------------------------------------------------------------
-# OPTIONAL quarter tiling — xfwm4 doesn't chain like Windows, so corners need
+# OPTIONAL quarter tiling - xfwm4 doesn't chain like Windows, so corners need
 # their own keys. Uncomment to use the numpad (turn NumLock OFF):
 #
 # set_wm_shortcut tile_up_left_key    "<Super>KP_Home"   # numpad 7 -> top-left

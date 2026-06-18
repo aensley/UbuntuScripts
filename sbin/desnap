@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+# desnap - fully remove and block snap
+
+set -euo pipefail
+
+[ "$(id -u)" -eq 0 ] || { echo "Run with sudo."; exit 1; }
+REAL_USER="${SUDO_USER:-root}"
+REAL_HOME="$(getent passwd "$REAL_USER" | cut -d: -f6)"
+
+# 1. Remove every installed snap (loops to resolve base-snap ordering)
+if command -v snap >/dev/null 2>&1; then
+  while snap list 2>/dev/null | awk 'NR>1{print $1}' | grep -q .; do
+    for s in $(snap list 2>/dev/null | awk 'NR>1{print $1}'); do
+      snap remove --purge "$s" 2>/dev/null || true
+    done
+  done
+fi
+
+# 2. Stop and disable the daemon
+systemctl stop snapd.socket snapd.service 2>/dev/null || true
+systemctl disable --now snapd.socket snapd.service snapd.seeded.service 2>/dev/null || true
+
+# 3. Purge the package
+apt-get autoremove --purge -y snapd
+apt-get autoremove --purge -y
+
+# 4. Clean up AppArmor profiles snapd left behind
+command -v aa-remove-unknown >/dev/null 2>&1 && aa-remove-unknown 2>/dev/null || true
+
+# 5. Remove residual directories and any stale loop mounts
+systemctl daemon-reload
+rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd
+rm -rf "$REAL_HOME/snap" /root/snap 2>/dev/null || true
+
+# 6. Block reinstallation - pin + hold
+cat > /etc/apt/preferences.d/nosnap.pref <<'EOF'
+Package: snapd
+Pin: release a=*
+Pin-Priority: -10
+EOF
+apt-mark hold snapd 2>/dev/null || true
+
+echo "Done. Verify with: apt-cache policy snapd  (Installed: none, priority -10)"
