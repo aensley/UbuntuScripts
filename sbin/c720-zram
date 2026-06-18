@@ -13,8 +13,7 @@ compression-algorithm = zstd
 EOF
 
 sudo systemctl daemon-reload && \
-sudo systemctl start /dev/zram0 && \
-sudo systemctl enable /dev/zram0
+sudo systemctl start /dev/zram0
 
 sudo tee /etc/sysctl.d/99-zram.conf >/dev/null <<'EOF'
 vm.swappiness = 180
