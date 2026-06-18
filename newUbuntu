@@ -21,6 +21,10 @@ removeApps() {
   sudo apt purge -y -f ${toRemove} && sudo apt -y -f --purge autoremove
 }
 
+removeSnaps() {
+  desnap
+}
+
 removeTracking() {
   toRemove="${toRemove} activity-log-manager apport zeitgeist-datahub"
 }
@@ -128,6 +132,7 @@ wget -qO- https://raw.githubusercontent.com/aensley/UbuntuScripts/main/sbin/upda
 removeChoices=$(
   whiptail --title "Select Software to Remove" --checklist "Select Software to Remove" 10 40 5 \
     Tracking "Tracking" on \
+    Snaps "Snap Packages" on \
     3>&1 1>&2 2>&3
 )
 
