@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+#
+# c720-fkeys.sh - map the Acer C720 top row to media key actions on Xubuntu (Xfce/X11).
+#
+#   F1  -> browser back        F6  -> brightness down
+#   F2  -> browser forward     F7  -> brightness up
+#   F3  -> browser refresh     F8  -> mute
+#   F4  -> fullscreen          F9  -> volume down
+#   F5  -> app switcher        F10 -> volume up
+#
+# F1-F3 and F6-F10 are remapped to real media keys with a kernel udev/hwdb rule
+# (works in every app, survives reboots). F4 and F5 are desktop actions, so they
+# are bound in Xfce instead and left as F4/F5 at the hardware level.
+#
+# Run as your normal user - it will sudo for the hwdb parts. Safe to re-run.
+#
+set -euo pipefail
+
+HWDB_FILE="/etc/udev/hwdb.d/61-chromebook-c720-keys.hwdb"
+
+# -------------------------------------------------------- safety checks ----
+if [ "$(id -u)" -eq 0 ]; then
+  echo "Run this as your normal user (it will sudo when it needs to)." >&2
+  exit 1
+fi
+command -v xfconf-query >/dev/null 2>&1 || {
+  echo "xfconf-query not found - are you on an Xfce/Xubuntu session?" >&2; exit 1; }
+
+# ---------------------------------------------------------------- helpers ----
+# Bind an xfwm4 action to a key, clearing any existing shortcut for that action.
+set_wm_shortcut() {
+  local action="$1" combo="$2" existing p
+  existing=$(xfconf-query -c xfce4-keyboard-shortcuts -p /xfwm4/custom -lv 2>/dev/null \
+             | awk -v a="$action" '$NF==a {print $1}') || true
+  if [ -n "$existing" ]; then
+    while read -r p; do
+      [ -n "$p" ] && { xfconf-query -c xfce4-keyboard-shortcuts -p "$p" -r 2>/dev/null || true; }
+    done <<< "$existing"
+  fi
+  xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/$combo" -r 2>/dev/null || true
+  xfconf-query -c xfce4-keyboard-shortcuts -np "/xfwm4/custom/$combo" -t string -s "$action" 2>/dev/null \
+    || xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/$combo" -s "$action"
+}
+
+# Bind a command to a key.
+set_cmd_shortcut() {
+  local cmd="$1" combo="$2"
+  xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$combo" -r 2>/dev/null || true
+  xfconf-query -c xfce4-keyboard-shortcuts -np "/commands/custom/$combo" -t string -s "$cmd" 2>/dev/null \
+    || xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$combo" -s "$cmd"
+}
+
+# ------------------------------- 1. detect this machine's hardware ID ----
+# External USB keyboards are not "atkbd", so they're unaffected regardless;
+# scoping by DMI just keeps the rule tidy and machine-specific.
+sani() { sed 's/[^A-Za-z0-9._-]\+/*/g'; }
+VENDOR=$(cat /sys/class/dmi/id/sys_vendor  2>/dev/null | sani || true)
+PRODUCT=$(cat /sys/class/dmi/id/product_name 2>/dev/null | sani || true)
+if [ -n "$PRODUCT" ] && [ "$PRODUCT" != "*" ]; then
+  MATCH="evdev:atkbd:dmi:*svn${VENDOR}*:*pn${PRODUCT}*"
+else
+  MATCH="evdev:atkbd:*"
+fi
+echo "Detected: vendor='$VENDOR' product='$PRODUCT'"
+echo "hwdb match: $MATCH"
+
+# ----------------------------------- 2. write + apply the hwdb rule ----
+echo "Writing $HWDB_FILE (needs sudo)..."
+sudo tee "$HWDB_FILE" >/dev/null <<EOF
+# Acer C720 Chromebook top-row keys -> media keys. Generated $(date +%F).
+# F1=back F2=forward F3=refresh F6=brightnessdown F7=brightnessup
+# F8=mute F9=volumedown F10=volumeup  (F4/F5 are bound in Xfce instead)
+$MATCH
+ KEYBOARD_KEY_3b=back
+ KEYBOARD_KEY_3c=forward
+ KEYBOARD_KEY_3d=refresh
+ KEYBOARD_KEY_40=brightnessdown
+ KEYBOARD_KEY_41=brightnessup
+ KEYBOARD_KEY_42=mute
+ KEYBOARD_KEY_43=volumedown
+ KEYBOARD_KEY_44=volumeup
+EOF
+
+sudo systemd-hwdb update
+sudo udevadm trigger --subsystem-match=input --action=change || true
+
+# ------------------------- 3. F4 fullscreen + F5 app switcher (Xfce) ----
+echo "Binding F4 -> fullscreen and F5 -> app switcher..."
+set_wm_shortcut  fullscreen_key          "F4"
+set_cmd_shortcut "xfce4-popup-windowmenu" "F5"
+
+# --------------------------------------------------------------- done ----
+echo
+echo "Done. The eight media keys take effect after a re-plug of the keyboard"
+echo "(internal keyboards usually need a reboot); F4/F5 work immediately."
+echo
+echo "Verify a scancode if any media key doesn't change:  sudo evtest"
+echo "  (pick the AT keyboard, press the key, read the (MSC_SCAN) value;"
+echo "   adjust the matching KEYBOARD_KEY_ line in $HWDB_FILE if it differs)."
+echo
+echo "Undo the media keys:  sudo rm $HWDB_FILE && sudo systemd-hwdb update && reboot"
