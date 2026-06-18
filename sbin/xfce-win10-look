@@ -47,8 +47,12 @@ fi
 
 # --------------------------------------------------------- dependencies ----
 need_pkg=()
-command -v git   >/dev/null 2>&1 || need_pkg+=(git)
-command -v xcape >/dev/null 2>&1 || need_pkg+=(xcape)
+command -v git      >/dev/null 2>&1 || need_pkg+=(git)
+command -v xcape    >/dev/null 2>&1 || need_pkg+=(xcape)
+# Right-click --> Extract Archive manager for Thunar (Xfce file manager)
+dpkg -s thunar-archive-plugin >/dev/null 2>&1 || need_pkg+=(thunar-archive-plugin)
+# Graphical archive manager for Thunar
+dpkg -s engrampa            >/dev/null 2>&1 || need_pkg+=(engrampa)
 if [ "${#need_pkg[@]}" -gt 0 ]; then
   echo "Installing: ${need_pkg[*]}"
   sudo apt-get update && sudo apt-get install -y "${need_pkg[@]}"
