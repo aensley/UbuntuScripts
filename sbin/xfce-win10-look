@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# win10-makeover.sh - turn Xubuntu 26.04 (Xfce 4.20) into a Windows-10-style
+# win10-makeover - turn Xubuntu 26.04 (Xfce 4.20) into a Windows-10-style
 # desktop in one shot. Combines three earlier scripts:
 #   1. B00merang Windows-10 GTK + xfwm4 (window border) + icon themes,
 #      Windows-style titlebars (left title, right min/max/close, no shade),
