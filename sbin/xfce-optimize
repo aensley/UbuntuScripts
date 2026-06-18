@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+# xfc-optimize - Tune performance on Xfce desktop environment
+
+set -euo pipefail
+
+sudo systemctl disable --now ModemManager
+sudo systemctl disable --now bluetooth.service
