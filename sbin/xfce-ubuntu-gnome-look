@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+#
+# xfce-ubuntu-gnome-look
+# Xubuntu 26.04 minimal (Xfce 4.20, X11): Ubuntu-style two-panel layout
+# (full-width top bar + left dock starting below it), Aero-snap, a Super-tap
+# application menu, AND theming/styling that matches Ubuntu 26.04 / GNOME 50 (Yaru).
+# No Plank, no xfdashboard.
+#
+# Layout, launchers, and window buttons come from the companion profile:
+# ubuntu-look.tar.bz2 (loaded automatically at the end).
+#
+# Run from the folder that also contains ubuntu-look.tar.bz2. Do NOT run with sudo;
+# it elevates only the apt step.
+
+set -euo pipefail
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
+# ----------------------------------------------------------------------------
+# 1. Packages (Yaru theme + Ubuntu font; no plank, no xfdashboard)
+# ----------------------------------------------------------------------------
+PKGS=(
+  xcape xfce4-panel-profiles
+  xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin
+  xfce4-power-manager xfce4-notifyd
+  thunar xfce4-terminal
+  yaru-theme-gtk yaru-theme-icon yaru-theme-sound fonts-ubuntu
+)
+echo ">> apt install: ${PKGS[*]}"
+sudo apt-get update -qq
+sudo apt-get install -y "${PKGS[@]}"
+
+# ----------------------------------------------------------------------------
+# 2. Theme + styling to match Ubuntu 26.04 / GNOME 50 (Yaru)
+# ----------------------------------------------------------------------------
+# Dark Ubuntu look = Yaru-dark, orange accent. For a different accent swap for
+# e.g. Yaru-purple-dark / Yaru-blue-dark / Yaru-sage-dark; for the light look use
+# the non-dark names (e.g. Yaru) and set color-scheme to 'default'.
+THEME="Yaru-dark"; ICONS="Yaru-dark"
+# create-or-set: works whether or not the property already exists on a fresh install
+xset () { xfconf-query -c "$1" -p "$2" -n -t "$3" -s "$4"; }
+xset xsettings /Net/ThemeName       string "$THEME"
+xset xsettings /Net/IconThemeName   string "$ICONS"
+xset xsettings /Net/CursorThemeName string "Yaru"
+xset xsettings /Gtk/FontName        string "Ubuntu 11"
+# GTK4/libadwaita apps follow the dark scheme
+gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' || true
+
+# Window decorations: Yaru's own xfwm4 theme, GNOME-style centered title,
+# Ubuntu's minimize/maximize/close on the right.
+xset xfwm4 /general/theme           string "$THEME"
+xset xfwm4 /general/button_layout   string "|HMC"
+xset xfwm4 /general/title_alignment string "center"
+xset xfwm4 /general/use_compositing bool   "true"
+
+# ----------------------------------------------------------------------------
+# 3. Keyboard shortcuts  (reset-then-create so nothing is a stale no-op)
+# ----------------------------------------------------------------------------
+set_kbd () {  # $1=property  $2=value
+  xfconf-query -c xfce4-keyboard-shortcuts -p "$1" -r 2>/dev/null || true
+  xfconf-query -c xfce4-keyboard-shortcuts -p "$1" -n -t string -s "$2"
+}
+
+# 3a. Aero snap. Tokens verified to need the _key suffix or they silently do nothing.
+set_kbd "/xfwm4/custom/<Super>Left"  "tile_left_key"
+set_kbd "/xfwm4/custom/<Super>Right" "tile_right_key"
+set_kbd "/xfwm4/custom/<Super>Up"    "maximize_window_key"   # toggles maximize/restore
+set_kbd "/xfwm4/custom/<Super>Down"  "hide_window_key"       # minimize, like Win+Down
+
+# 3b. Drop any leftover bare-Super binding (a lone modifier never fires on its own).
+xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/Super_L" -r 2>/dev/null || true
+
+# 3c. Super TAP -> Whisker menu, via xcape.
+#     xcape emits Ctrl+Esc only when Super is tapped and released alone, so holding
+#     Super for the Super+arrow snaps above is unaffected. The popup is a *command*
+#     shortcut (handled by xfsettingsd). Bind it to exactly ONE combo: <Primary> and
+#     <Control> are aliases for the same Ctrl+Escape, and binding both makes
+#     xfsettingsd grab the identical combo twice -> the grab conflicts and silently
+#     fails. So we remove any <Control>Escape and keep a single <Primary>Escape.
+xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/<Control>Escape" -r 2>/dev/null || true
+set_kbd "/commands/custom/<Primary>Escape" "xfce4-popup-whiskermenu"
+
+# Robust autostart: a tiny wrapper (no reserved chars in the .desktop Exec) that
+# also clears any stale xcape before starting.
+mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart"
+cat > "$HOME/.local/bin/super-menu-xcape.sh" << 'EOF'
+#!/bin/sh
+pkill -x xcape 2>/dev/null
+exec xcape -e 'Super_L=Control_L|Escape'
+EOF
+chmod +x "$HOME/.local/bin/super-menu-xcape.sh"
+cat > "$HOME/.config/autostart/xcape-super.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=Super-tap menu (xcape)
+Exec=$HOME/.local/bin/super-menu-xcape.sh
+X-GNOME-Autostart-enabled=true
+Hidden=false
+EOF
+"$HOME/.local/bin/super-menu-xcape.sh" &   # start now, no relogin needed
+
+# ----------------------------------------------------------------------------
+# 4. Load the two-panel layout; make the panels dark (Ubuntu top bar + dock),
+#    then seat the left dock precisely under the top bar from the ACTUAL screen size.
+# ----------------------------------------------------------------------------
+if [ -f "$HOME/UbuntuScriptsGit/config/xfce-ubuntu-gnome-look.tar.bz2" ]; then
+  echo ">> loading panel layout"
+  xfce4-panel-profiles load "$HOME/UbuntuScriptsGit/config/xfce-ubuntu-gnome-look.tar.bz2"
+  sleep 2
+  xset xfce4-panel /panels/dark-mode bool "true"   # dark top bar + dock
+  H="$(xrandr --current 2>/dev/null | awk '/\*/{print $1; exit}' | cut -dx -f2)"; H="${H:-768}"
+  TOPSIZE="$(xfconf-query -c xfce4-panel -p /panels/panel-1/size 2>/dev/null || echo 28)"
+  TOPH=$((TOPSIZE + 1))
+  AVAIL=$((H - TOPH))
+  LEN=$((AVAIL * 100 / H))          # integer % that fits below the bar
+  PANELH=$((LEN * H / 100))
+  CENTER=$((TOPH + PANELH / 2))     # y is the panel's CENTER (verified empirically)
+  xset xfce4-panel /panels/panel-2/length   uint   "$LEN"
+  xset xfce4-panel /panels/panel-2/position string "p=5;x=0;y=$CENTER"
+  xfce4-panel -r >/dev/null 2>&1 || true
+  echo ">> left dock: length=${LEN}%  center-y=${CENTER}  (screen height ${H}, top bar ${TOPH}px)"
+else
+  echo "!! xfce-ubuntu-gnome-look.tar.bz2 not found in $HOME/UbuntuScriptsGit/config - skipped panel load."
+  echo "   Run: xfce4-panel-profiles load $HOME/UbuntuScriptsGit/config/xfce-ubuntu-gnome-look.tar.bz2"
+fi
+
+echo
+echo ">> Done. Log out and back in once so the theme, xcape, and panels settle."
+echo ">> Super tap = menu | Super+Left/Right = snap | Super+Up = maximize | Super+Down = minimize"
