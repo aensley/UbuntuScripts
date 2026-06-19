@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #
-# c720-fkeys-xfce - map the Acer C720 top row to media key actions on Xubuntu (Xfce/X11).
+# c720-fkeys-xfce - map the Acer C720 top row to media key actions on Xubuntu (Xfce/X11),
+#                   and bind Shift+Backspace -> Delete via keyd.
 #
 #   F1  -> browser back        F6  -> brightness down
 #   F2  -> browser forward     F7  -> brightness up
@@ -8,15 +9,20 @@
 #   F4  -> fullscreen          F9  -> volume down
 #   F5  -> app switcher        F10 -> volume up
 #
+#   Shift+Backspace -> Delete  (keyd; see section 4)
+#
 # F1-F3 and F6-F10 are remapped to real media keys with a kernel udev/hwdb rule
 # (works in every app, survives reboots). F4 and F5 are desktop actions, so they
-# are bound in Xfce instead and left as F4/F5 at the hardware level.
+# are bound in Xfce instead and left as F4/F5 at the hardware level. Shift+Backspace
+# is a modifier-conditional remap, which hwdb cannot express, so keyd handles it.
 #
-# Run as your normal user - it will sudo for the hwdb parts. Safe to re-run.
+# Run as your normal user - it will sudo for the hwdb/keyd parts. Safe to re-run.
 #
 set -euo pipefail
 
 HWDB_FILE="/etc/udev/hwdb.d/61-chromebook-c720-keys.hwdb"
+KEYD_FILE="/etc/keyd/default.conf"
+KEYD_MARKER="# managed by c720-fkeys-xfce"
 
 # -------------------------------------------------------- safety checks ----
 if [ "$(id -u)" -eq 0 ]; then
@@ -89,13 +95,82 @@ echo "Binding F4 -> fullscreen and F5 -> app switcher..."
 set_wm_shortcut  fullscreen_key          "F4"
 set_cmd_shortcut "xfce4-popup-windowmenu" "F5"
 
+# ------------------------------- 4. Shift+Backspace -> Delete (keyd) ----
+# hwdb can't do this one: a scancode->keycode rule has no notion of modifier
+# state, so it can't say "Backspace, but Delete while Shift is held." keyd is a
+# userspace daemon that reads the *post-hwdb* keycodes (so it composes with the
+# rules in section 2 instead of fighting them), tracks Shift itself, and re-emits
+# a clean keysym.
+#
+# Critical detail: in keyd a binding is NOT re-modified by the modifiers of the
+# layer it lives in. So `backspace = delete` inside [shift] emits a BARE Delete,
+# never Shift+Delete - which matters because Shift+Delete in Thunar is a
+# permanent, trash-bypassing delete. (Verify once anyway; see notes at the end.)
+KEYD_OK=0
+if command -v keyd >/dev/null 2>&1 || dpkg -s keyd >/dev/null 2>&1; then
+  echo "keyd already installed."
+  KEYD_OK=1
+else
+  echo "Installing keyd (needs sudo; it lives in the 'universe' component)..."
+  if sudo apt-get install -y keyd >/dev/null 2>&1; then
+    KEYD_OK=1
+  else
+    echo "  ! Could not install keyd - skipping the Shift+Backspace->Delete step." >&2
+    echo "    Try: sudo add-apt-repository universe && sudo apt update && sudo apt install keyd" >&2
+  fi
+fi
+
+if [ "$KEYD_OK" -eq 1 ]; then
+  # keyd treats each /etc/keyd/*.conf as a separate, [ids]-matched config and
+  # will NOT merge two that both match "*", so we can't just drop a second file
+  # alongside one you already have - we have to own default.conf. If a config is
+  # already there and we didn't write it, back it up rather than clobber it.
+  if [ -e "$KEYD_FILE" ] && ! grep -qF "$KEYD_MARKER" "$KEYD_FILE" 2>/dev/null; then
+    backup="$KEYD_FILE.bak-$(date +%Y%m%d%H%M%S)"
+    echo "  ! $KEYD_FILE exists and wasn't written by this script." >&2
+    echo "    Backing it up to $backup - re-add any bindings you need by hand." >&2
+    sudo cp -a "$KEYD_FILE" "$backup"
+  fi
+
+  echo "Writing $KEYD_FILE (needs sudo)..."
+  sudo install -d -m 755 /etc/keyd
+  sudo tee "$KEYD_FILE" >/dev/null <<EOF
+$KEYD_MARKER - Shift+Backspace -> Delete. Generated $(date +%F).
+# [ids] "*" matches every device keyd identifies as a keyboard (not the touchpad).
+# In [shift], the binding is not re-modified by Shift, so this emits a bare Delete
+# (NOT Shift+Delete / Thunar permanent-delete).
+[ids]
+*
+
+[shift]
+backspace = delete
+EOF
+
+  # enable for boot; restart re-reads the config whether or not it was already
+  # running (covers both first run and re-runs after the file changes).
+  sudo systemctl enable keyd >/dev/null 2>&1 || true
+  if sudo systemctl restart keyd; then
+    echo "keyd active: Shift+Backspace now sends Delete."
+  else
+    echo "  ! keyd failed to (re)start - check: sudo systemctl status keyd" >&2
+    echo "    The config is written and will load on next boot." >&2
+  fi
+fi
+
 # --------------------------------------------------------------- done ----
 echo
-echo "Done. The eight media keys take effect after a re-plug of the keyboard"
-echo "(internal keyboards usually need a reboot); F4/F5 work immediately."
+echo "Done."
+echo "  - The eight media keys take effect after a re-plug of the keyboard"
+echo "    (internal keyboards usually need a reboot); F4/F5 work immediately."
+echo "  - Shift+Backspace -> Delete is live now (keyd)."
 echo
-echo "Verify a scancode if any media key doesn't change:  sudo evtest"
+echo "Verify a media-key scancode if one doesn't change:  sudo evtest"
 echo "  (pick the AT keyboard, press the key, read the (MSC_SCAN) value;"
 echo "   adjust the matching KEYBOARD_KEY_ line in $HWDB_FILE if it differs)."
 echo
+echo "Test Shift+Backspace once in BOTH a text field and Thunar - you want a"
+echo "plain Delete, never Shift+Delete. To watch what keyd emits:  sudo keyd monitor"
+echo
 echo "Undo the media keys:  sudo rm $HWDB_FILE && sudo systemd-hwdb update && reboot"
+echo "Undo Shift+Backspace: sudo rm $KEYD_FILE && sudo systemctl restart keyd"
+echo "                      (and 'sudo apt remove keyd' if you want it gone entirely)"
