@@ -26,10 +26,16 @@ TREE_ONLY=0
 for arg in "$@"; do
   case "$arg" in
     --tree-only) TREE_ONLY=1 ;;
-    -h|--help)   awk 'NR==1{next} /^#/{sub(/^# ?/,"");print;next} {exit}' "$0"; exit 0 ;;
-    -*)          echo "Unknown option: $arg" >&2; exit 1 ;;
-    */*)         PACKAGE="$arg" ;;     # contains a slash -> it's vendor/package
-    *)           CONSTRAINT="$arg" ;;  # otherwise treat as version constraint
+    -h | --help)
+      awk 'NR==1{next} /^#/{sub(/^# ?/,"");print;next} {exit}' "$0"
+      exit 0
+      ;;
+    -*)
+      echo "Unknown option: $arg" >&2
+      exit 1
+      ;;
+    */*) PACKAGE="$arg" ;;  # contains a slash -> it's vendor/package
+    *) CONSTRAINT="$arg" ;; # otherwise treat as version constraint
   esac
 done
 
@@ -38,13 +44,16 @@ if [[ -z "$PACKAGE" ]]; then
   exit 1
 fi
 
-command -v composer >/dev/null || { echo "Error: composer not found in PATH." >&2; exit 1; }
+command -v composer >/dev/null || {
+  echo "Error: composer not found in PATH." >&2
+  exit 1
+}
 
 # ---- scratch project (auto-cleaned on exit) ------------------------------
 WORKDIR="$(mktemp -d)"
 trap 'rm -rf "$WORKDIR"' EXIT
 
-cat > "$WORKDIR/composer.json" <<EOF
+cat >"$WORKDIR/composer.json" <<EOF
 {
     "require": {
         "${PACKAGE}": "${CONSTRAINT}"
@@ -61,10 +70,10 @@ echo
 # ---- dependency tree (resolution only, nothing downloaded) ---------------
 echo "Dependency tree (what would be installed):"
 echo "------------------------------------------"
-composer update --dry-run --no-dev --working-dir="$WORKDIR" --no-interaction 2>&1 \
-  | grep -oE '(Locking|Installing) [^ ]+/[^ ]+ \([^)]+\)' \
-  | sed -E 's/^(Locking|Installing) /  /' \
-  | sort -u
+composer update --dry-run --no-dev --working-dir="$WORKDIR" --no-interaction 2>&1 |
+  grep -oE '(Locking|Installing) [^ ]+/[^ ]+ \([^)]+\)' |
+  sed -E 's/^(Locking|Installing) /  /' |
+  sort -u
 echo
 
 if [[ "$TREE_ONLY" -eq 1 ]]; then
@@ -80,9 +89,9 @@ echo
 
 echo "Installed size per package (extracted, largest first):"
 echo "------------------------------------------------------"
-du -sk "$WORKDIR"/vendor/*/* 2>/dev/null \
-  | sort -rn \
-  | awk -v w="$WORKDIR" '{ p=$2; sub(w"/vendor/","",p); printf "  %10d KB  %s\n", $1, p }'
+du -sk "$WORKDIR"/vendor/*/* 2>/dev/null |
+  sort -rn |
+  awk -v w="$WORKDIR" '{ p=$2; sub(w"/vendor/","",p); printf "  %10d KB  %s\n", $1, p }'
 echo
 
 du -sk "$WORKDIR/vendor" | awk '{ printf "Total installed (extracted) size: %d KB\n", $1 }'

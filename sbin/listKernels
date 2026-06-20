@@ -7,7 +7,7 @@ dpkg --list | grep linux-image
 echoheader "Active Kernel"
 uname -r
 
-if commandExists canonical-livepatch ; then
+if commandExists canonical-livepatch; then
   echoheader "Livepatch Status"
   canonical-livepatch status
 fi

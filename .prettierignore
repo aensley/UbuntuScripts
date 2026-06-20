@@ -1,0 +1,4 @@
+/etc/
+/node_modules/
+/share/
+package-lock.json

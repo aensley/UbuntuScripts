@@ -18,11 +18,18 @@ set -euo pipefail
 # ---------------------------------------------------------------- config ----
 VARIANT="${1:-dark}"
 case "$VARIANT" in
-  light) GTK_REPO="https://github.com/B00merang-Project/Windows-10.git"
-         ICON_REPO="https://github.com/B00merang-Artwork/Windows-10.git" ;;
-  dark)  GTK_REPO="https://github.com/B00merang-Project/Windows-10-Dark.git"
-         ICON_REPO="https://github.com/B00merang-Artwork/Windows-10-Dark.git" ;;
-  *) echo "Usage: $0 [light|dark]" >&2; exit 1 ;;
+  light)
+    GTK_REPO="https://github.com/B00merang-Project/Windows-10.git"
+    ICON_REPO="https://github.com/B00merang-Artwork/Windows-10.git"
+    ;;
+  dark)
+    GTK_REPO="https://github.com/B00merang-Project/Windows-10-Dark.git"
+    ICON_REPO="https://github.com/B00merang-Artwork/Windows-10-Dark.git"
+    ;;
+  *)
+    echo "Usage: $0 [light|dark]" >&2
+    exit 1
+    ;;
 esac
 
 THEME_NAME="Windows-10"
@@ -31,9 +38,9 @@ THEME_DIR="$HOME/.themes/$THEME_NAME"
 ICON_DIR="$HOME/.icons/$ICON_NAME"
 BACKUP="$HOME/.win10-look-revert.sh"
 
-TRIGGER_XFCONF="<Alt>F1"        # Xfce name for the combo xcape emits on a Super tap
-XCAPE_MAP="Super_L=Alt_L|F1"    # xcape name for that same combo
-XCAPE_TIMEOUT=250               # ms; lone Super held longer than this won't fire the menu
+TRIGGER_XFCONF="<Alt>F1"     # Xfce name for the combo xcape emits on a Super tap
+XCAPE_MAP="Super_L=Alt_L|F1" # xcape name for that same combo
+XCAPE_TIMEOUT=250            # ms; lone Super held longer than this won't fire the menu
 
 # -------------------------------------------------------- safety checks ----
 if [ "$(id -u)" -eq 0 ]; then
@@ -47,12 +54,12 @@ fi
 
 # --------------------------------------------------------- dependencies ----
 need_pkg=()
-command -v git      >/dev/null 2>&1 || need_pkg+=(git)
-command -v xcape    >/dev/null 2>&1 || need_pkg+=(xcape)
+command -v git >/dev/null 2>&1 || need_pkg+=(git)
+command -v xcape >/dev/null 2>&1 || need_pkg+=(xcape)
 # Right-click --> Extract Archive manager for Thunar (Xfce file manager)
 dpkg -s thunar-archive-plugin >/dev/null 2>&1 || need_pkg+=(thunar-archive-plugin)
 # Graphical archive manager for Thunar
-dpkg -s engrampa            >/dev/null 2>&1 || need_pkg+=(engrampa)
+dpkg -s engrampa >/dev/null 2>&1 || need_pkg+=(engrampa)
 if [ "${#need_pkg[@]}" -gt 0 ]; then
   echo "Installing: ${need_pkg[*]}"
   sudo apt-get update && sudo apt-get install -y "${need_pkg[@]}"
@@ -79,16 +86,16 @@ clone_or_update() {
 # using that action first (xfwm4 misbehaves if one action has two shortcuts).
 set_wm_shortcut() {
   local action="$1" combo="$2" existing p
-  existing=$(xfconf-query -c xfce4-keyboard-shortcuts -p /xfwm4/custom -lv 2>/dev/null \
-             | awk -v a="$action" '$NF==a {print $1}') || true
+  existing=$(xfconf-query -c xfce4-keyboard-shortcuts -p /xfwm4/custom -lv 2>/dev/null |
+    awk -v a="$action" '$NF==a {print $1}') || true
   if [ -n "$existing" ]; then
     while read -r p; do
       [ -n "$p" ] && { xfconf-query -c xfce4-keyboard-shortcuts -p "$p" -r 2>/dev/null || true; }
-    done <<< "$existing"
+    done <<<"$existing"
   fi
   xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/$combo" -r 2>/dev/null || true
-  xfconf-query -c xfce4-keyboard-shortcuts -np "/xfwm4/custom/$combo" -t string -s "$action" 2>/dev/null \
-    || xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/$combo" -s "$action"
+  xfconf-query -c xfce4-keyboard-shortcuts -np "/xfwm4/custom/$combo" -t string -s "$action" 2>/dev/null ||
+    xfconf-query -c xfce4-keyboard-shortcuts -p "/xfwm4/custom/$combo" -s "$action"
 }
 
 # ----------------------------------- 1. capture look + write revert script ----
@@ -100,7 +107,7 @@ OLD_ALIGN=$(cur xfwm4 /general/title_alignment center)
 OLD_BTN=$(cur xfwm4 /general/button_layout "O|SHMC")
 OLD_TILE=$(cur xfwm4 /general/tile_on_move true)
 
-cat > "$BACKUP" <<EOF
+cat >"$BACKUP" <<EOF
 #!/usr/bin/env bash
 # Auto-generated revert for xfce-win10-look (restores the look
 # and removes the Super-tap helper; leaves the Super+arrow tiling shortcuts).
@@ -120,24 +127,24 @@ chmod +x "$BACKUP"
 # ----------------------------------------------- 2. install + apply themes ----
 echo "Installing themes ($VARIANT)..."
 mkdir -p "$HOME/.themes" "$HOME/.icons"
-clone_or_update "$GTK_REPO"  "$THEME_DIR"
+clone_or_update "$GTK_REPO" "$THEME_DIR"
 clone_or_update "$ICON_REPO" "$ICON_DIR"
 gtk-update-icon-cache -f "$ICON_DIR" >/dev/null 2>&1 || true
 
-xfconf-query -c xsettings -p /Net/ThemeName     -s "$THEME_NAME"
+xfconf-query -c xsettings -p /Net/ThemeName -s "$THEME_NAME"
 xfconf-query -c xsettings -p /Net/IconThemeName -s "$ICON_NAME"
-xfconf-query -c xfwm4     -p /general/theme      -s "$THEME_NAME"
+xfconf-query -c xfwm4 -p /general/theme -s "$THEME_NAME"
 # Windows-style titlebars + drag-to-edge snapping
 xfconf-query -c xfwm4 -p /general/title_alignment -s left
-xfconf-query -c xfwm4 -p /general/button_layout   -s "O|HMC"
-xfconf-query -c xfwm4 -p /general/tile_on_move    -s true
+xfconf-query -c xfwm4 -p /general/button_layout -s "O|HMC"
+xfconf-query -c xfwm4 -p /general/tile_on_move -s true
 
 # --------------------------------------- 3. Super+arrow tiling shortcuts ----
 echo "Setting Super+arrow tiling shortcuts..."
-set_wm_shortcut tile_left_key       "<Super>Left"
-set_wm_shortcut tile_right_key      "<Super>Right"
+set_wm_shortcut tile_left_key "<Super>Left"
+set_wm_shortcut tile_right_key "<Super>Right"
 set_wm_shortcut maximize_window_key "<Super>Up"
-set_wm_shortcut hide_window_key     "<Super>Down"
+set_wm_shortcut hide_window_key "<Super>Down"
 
 # --------------- 4. Super tap -> Whisker; Super held -> modifier (xcape) ----
 # We deliberately do NOT bind Super by itself in Xfce - on X11 that grabs the
@@ -149,12 +156,12 @@ for k in Super_L Super_R; do
 done
 xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$TRIGGER_XFCONF" -r 2>/dev/null || true
 xfconf-query -c xfce4-keyboard-shortcuts -np "/commands/custom/$TRIGGER_XFCONF" \
-  -t string -s "xfce4-popup-whiskermenu" 2>/dev/null \
-  || xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$TRIGGER_XFCONF" \
-       -s "xfce4-popup-whiskermenu"
+  -t string -s "xfce4-popup-whiskermenu" 2>/dev/null ||
+  xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/$TRIGGER_XFCONF" \
+    -s "xfce4-popup-whiskermenu"
 
 mkdir -p "$HOME/.config/autostart"
-cat > "$HOME/.config/autostart/xcape-superkey.desktop" <<EOF
+cat >"$HOME/.config/autostart/xcape-superkey.desktop" <<EOF
 [Desktop Entry]
 Type=Application
 Name=xcape (Super tap -> Whisker menu)

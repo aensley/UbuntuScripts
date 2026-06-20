@@ -21,10 +21,9 @@ RECIPIENT="root"
 
 condition=$(/sbin/zpool status | egrep -i '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
 if [ "${condition}" ]; then
-  emailSubject="`hostname` - ZFS pool - HEALTH fault"
+  emailSubject="$(hostname) - ZFS pool - HEALTH fault"
   problems=1
 fi
-
 
 # Capacity - Make sure pool capacities are below 80% for best performance. The
 # percentage really depends on how large your volume is. If you have a 128GB
@@ -41,15 +40,14 @@ fi
 maxCapacity=80
 
 if [ ${problems} -eq 0 ]; then
- capacity=$(/sbin/zpool list -H -o capacity)
- for line in ${capacity//%/}; do
-   if [ $line -ge $maxCapacity ]; then
-     emailSubject="`hostname` - ZFS pool - Capacity Exceeded"
-     problems=1
-   fi
- done
+  capacity=$(/sbin/zpool list -H -o capacity)
+  for line in ${capacity//%/}; do
+    if [ $line -ge $maxCapacity ]; then
+      emailSubject="$(hostname) - ZFS pool - Capacity Exceeded"
+      problems=1
+    fi
+  done
 fi
-
 
 # Errors - Check the columns for READ, WRITE and CKSUM (checksum) drive errors
 # on all volumes and all drives using "zpool status". If any non-zero errors
@@ -59,11 +57,10 @@ fi
 if [ ${problems} -eq 0 ]; then
   errors=$(/sbin/zpool status | grep ONLINE | grep -v state | awk '{print $3 $4 $5}' | grep -v 000)
   if [ "${errors}" ]; then
-    emailSubject="`hostname` - ZFS pool - Drive Errors"
+    emailSubject="$(hostname) - ZFS pool - Drive Errors"
     problems=1
   fi
 fi
-
 
 # Scrub Expired - Check if all volumes have been scrubbed in at least the last
 # 8 days. The general guide is to scrub volumes on desktop quality drives once
@@ -100,12 +97,11 @@ if [ ${problems} -eq 0 ]; then
     scrubDate=$(date -d "$scrubRawDate" +%s)
 
     if [ $(($currentDate - $scrubDate)) -ge $scrubExpire ]; then
-      emailSubject="`hostname` - ZFS pool - Scrub Time Expired. Scrub Needed on Volume(s)"
+      emailSubject="$(hostname) - ZFS pool - Scrub Time Expired. Scrub Needed on Volume(s)"
       problems=1
     fi
   done
 fi
-
 
 # Notifications - On any problems send email with drive status information and
 # capacities including a helpful subject line to root. Also use logger to write
@@ -117,7 +113,7 @@ fi
 # + Update Nagios, Cacti, Zabbix, Munin or even BigBrother
 
 if [ "$problems" -ne 0 ]; then
-  echo -e "$emailSubject \n\n\n `/sbin/zpool list` \n\n\n `/sbin/zpool status`" | mail -s "$emailSubject" "$RECIPIENT"
+  echo -e "$emailSubject \n\n\n $(/sbin/zpool list) \n\n\n $(/sbin/zpool status)" | mail -s "$emailSubject" "$RECIPIENT"
   logger $emailSubject
 fi
 

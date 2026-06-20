@@ -22,7 +22,7 @@ removeApps() {
 }
 
 removeSnaps() {
-  desnap
+  sudo desnap
 }
 
 removeTracking() {

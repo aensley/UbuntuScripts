@@ -1,0 +1,62 @@
+{
+  "name": "UbuntuScripts",
+  "private": true,
+  "version": "1.0.0",
+  "homepage": "https://github.com/aensley/UbuntuScripts#readme",
+  "bugs": {
+    "url": "https://github.com/aensley/UbuntuScripts/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aensley/UbuntuScripts.git"
+  },
+  "license": "MIT",
+  "scripts": {
+    "commit": "czg",
+    "test": "shellcheck sbin/*",
+    "lint": "prettier --check . && ~/go/bin/shfmt -d -i 2 -ci sbin/*",
+    "lint:fix": "prettier --write . && ~/go/bin/shfmt -w -i 2 -ci sbin/*",
+    "prepare": "npx simple-git-hooks",
+    "update": "npx npm-check-updates -u && npm update"
+  },
+  "devDependencies": {
+    "conventional-changelog-conventionalcommits": "^9.3.1",
+    "czg": "^1.13.1",
+    "prettier": "^3.8.4",
+    "simple-git-hooks": "^2.13.1"
+  },
+  "allowScripts": {
+    "simple-git-hooks@2.13.1": true
+  },
+  "prettier": {
+    "tabWidth": 2,
+    "printWidth": 120,
+    "useTabs": false,
+    "endOfLine": "lf",
+    "trailingComma": "none",
+    "semi": false,
+    "singleQuote": true,
+    "arrowParens": "always",
+    "bracketSameLine": true,
+    "bracketSpacing": true,
+    "embeddedLanguageFormatting": "auto",
+    "htmlWhitespaceSensitivity": "css",
+    "insertPragma": false,
+    "jsxSingleQuote": false,
+    "proseWrap": "preserve",
+    "quoteProps": "as-needed",
+    "requirePragma": false,
+    "vueIndentScriptAndStyle": false
+  },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-git",
+      "type": "conventional",
+      "useEmoji": true
+    }
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npm run lint && npm run test",
+    "prepare-commit-msg": "exec < /dev/tty && node_modules/.bin/czg --hook \"$1\" \"$2\" || true"
+  }
+}

@@ -4,8 +4,8 @@
 # Obtained from: https://www.linuxjournal.com/content/bash-regular-expressions
 
 if [[ $# -lt 2 ]]; then
-    echo "Usage: $0 PATTERN STRINGS..."
-    exit 1
+  echo "Usage: $0 PATTERN STRINGS..."
+  exit 1
 fi
 
 regex=$1

@@ -4,7 +4,10 @@
 
 set -euo pipefail
 
-[ "$(id -u)" -eq 0 ] || { echo "Run with sudo."; exit 1; }
+[ "$(id -u)" -eq 0 ] || {
+  echo "Run with sudo."
+  exit 1
+}
 REAL_USER="${SUDO_USER:-root}"
 REAL_HOME="$(getent passwd "$REAL_USER" | cut -d: -f6)"
 
@@ -34,7 +37,7 @@ rm -rf /snap /var/snap /var/lib/snapd /var/cache/snapd
 rm -rf "$REAL_HOME/snap" /root/snap 2>/dev/null || true
 
 # 6. Block reinstallation - pin + hold
-cat > /etc/apt/preferences.d/nosnap.pref <<'EOF'
+cat >/etc/apt/preferences.d/nosnap.pref <<'EOF'
 Package: snapd
 Pin: release a=*
 Pin-Priority: -10

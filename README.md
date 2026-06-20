@@ -7,7 +7,7 @@ Scripts I use on Ubuntu / Debian systems.
 First step to perform on a new Ubuntu installation:
 
 ```ShellSession
-wget -qO- https://ensl.ee/newUbuntu | bash -
+wget -qO- https://ensl.ee/newUbuntu | bash
 ```
 
 ## Existing Machine
@@ -15,5 +15,5 @@ wget -qO- https://ensl.ee/newUbuntu | bash -
 If you have an existing installation and just want the scripts without any installation/removal of software, run this command:
 
 ```ShellSession
-wget -qO- https://ensl.ee/updateScripts | bash -
+wget -qO- https://ensl.ee/updateScripts | bash
 ```

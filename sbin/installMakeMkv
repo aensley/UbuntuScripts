@@ -17,25 +17,25 @@ echoheader "Installing Pre-requisites"
 sudo apt install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
 
 echoheader "Downloading installation files"
-mkdir -p /tmp/makemkv/ && \
-cd /tmp/makemkv/ && \
-wget -O makemkv-bin-${MAKEMKVVERSION}.tar.gz http://www.makemkv.com/download/makemkv-bin-${MAKEMKVVERSION}.tar.gz && \
-wget -O makemkv-oss-${MAKEMKVVERSION}.tar.gz http://www.makemkv.com/download/makemkv-oss-${MAKEMKVVERSION}.tar.gz
+mkdir -p /tmp/makemkv/ &&
+  cd /tmp/makemkv/ &&
+  wget -O makemkv-bin-${MAKEMKVVERSION}.tar.gz http://www.makemkv.com/download/makemkv-bin-${MAKEMKVVERSION}.tar.gz &&
+  wget -O makemkv-oss-${MAKEMKVVERSION}.tar.gz http://www.makemkv.com/download/makemkv-oss-${MAKEMKVVERSION}.tar.gz
 
 echoheader "Installing OSS Component"
-cd /tmp/makemkv/ && \
-tar -zxf makemkv-oss-${MAKEMKVVERSION}.tar.gz && \
-cd /tmp/makemkv/makemkv-oss-${MAKEMKVVERSION}/ && \
-./configure && \
-make && \
-sudo make install
+cd /tmp/makemkv/ &&
+  tar -zxf makemkv-oss-${MAKEMKVVERSION}.tar.gz &&
+  cd /tmp/makemkv/makemkv-oss-${MAKEMKVVERSION}/ &&
+  ./configure &&
+  make &&
+  sudo make install
 
 echoheader "Installing Binary Component"
-cd /tmp/makemkv/ && \
-tar -zxf makemkv-bin-${MAKEMKVVERSION}.tar.gz && \
-cd /tmp/makemkv/makemkv-bin-${MAKEMKVVERSION}/ && \
-make && \
-sudo make install
+cd /tmp/makemkv/ &&
+  tar -zxf makemkv-bin-${MAKEMKVVERSION}.tar.gz &&
+  cd /tmp/makemkv/makemkv-bin-${MAKEMKVVERSION}/ &&
+  make &&
+  sudo make install
 
 echoheader "Removing Installation Files"
 rm -rf /tmp/makemkv/

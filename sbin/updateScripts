@@ -7,7 +7,7 @@ SCRIPTS_DIR=/usr/local/sbin/
 SHARE_DIR=/usr/local/share/
 GIT_REPO=https://github.com/aensley/UbuntuScripts.git
 
-echosmallerheader () {
+echosmallerheader() {
   echo
   echo -e "===== \033[34m\033[1m$1\033[m ====="
   echo

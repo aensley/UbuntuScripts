@@ -8,16 +8,16 @@ read -p 'Press [Enter] to continue or [CTRL-C] to abort...'
 echo
 
 for f in ./*.mkv; do
-        echo "file '$f'" >> mkvlist.txt
+  echo "file '$f'" >>mkvlist.txt
 done
 
 listSize=$(wc -l "mkvlist.txt" | awk '{print $1}')
 
 if [ "$listSize" = "1" ]; then
-        echo "No MKVs found"
+  echo "No MKVs found"
 else
-	echo "$listSize MKVs found"
-	ffmpeg -f concat -safe 0 -i mkvlist.txt -map 0 -c copy -c:a copy -c:s copy -y output.mkv
+  echo "$listSize MKVs found"
+  ffmpeg -f concat -safe 0 -i mkvlist.txt -map 0 -c copy -c:a copy -c:s copy -y output.mkv
 fi
 
 rm mkvlist.txt

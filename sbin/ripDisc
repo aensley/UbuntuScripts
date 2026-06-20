@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-hr () {
+hr() {
   echo '--------------------------------------------------------------------------------'
 }
 
@@ -26,51 +26,48 @@ HANDBRAKE_PRESET_DIR=/usr/local/share/handbrake-presets/
 echo
 echo 'Is this disc a DVD or Blu-Ray? (Enter the number)'
 
-select disc_format in DVD "Blu-Ray"
-do
+select disc_format in DVD "Blu-Ray"; do
   case ${disc_format} in
-  DVD|"Blu-Ray")
-    break
-    ;;
-  *)
-    echo
-    echo 'Invalid entry'
-    echo
-    ;;
+    DVD | "Blu-Ray")
+      break
+      ;;
+    *)
+      echo
+      echo 'Invalid entry'
+      echo
+      ;;
   esac
 done
 
 echo
 echo "Is this ${disc_format} for a Movie or TV Show? (Enter the number)"
 
-select disc_type in Movie "TV Show"
-do
+select disc_type in Movie "TV Show"; do
   case ${disc_type} in
-  Movie|"TV Show")
-    break
-    ;;
-  *)
-    echo
-    echo 'Invalid entry'
-    echo
-    ;;
+    Movie | "TV Show")
+      break
+      ;;
+    *)
+      echo
+      echo 'Invalid entry'
+      echo
+      ;;
   esac
 done
 
 echo
 echo 'Is this a Film or Animation? (Enter the number)'
 
-select film_type in Film Animation
-do
+select film_type in Film Animation; do
   case ${film_type} in
-  Film|Animation)
-    break
-    ;;
-  *)
-    echo
-    echo 'Invalid entry'
-    echo
-    ;;
+    Film | Animation)
+      break
+      ;;
+    *)
+      echo
+      echo 'Invalid entry'
+      echo
+      ;;
   esac
 done
 
@@ -82,7 +79,7 @@ while [ -z "$disc_name" ]; do
 done
 
 # Replace all non-alphanumeric characters with "_"
-escaped_disc_name=`echo "${disc_name}" | tr -c '[[:alnum:]]' '_'`
+escaped_disc_name=$(echo "${disc_name}" | tr -c '[[:alnum:]]' '_')
 
 preset_file=''
 preset_name=''
@@ -126,8 +123,7 @@ if [ $? = 0 ]; then
 
   mkdir -p ${DEST}
 
-  for FILE in `ls ${SRC}`
-  do
+  for FILE in $(ls ${SRC}); do
     echo
     hr
     filename=$(basename ${FILE})

@@ -5,37 +5,37 @@
 echoheader "Upgrading System Packages"
 sudo apt update && sudo apt full-upgrade -y -f -u && sudo apt autoremove --purge && sudo apt clean
 
-if commandExists snap ; then
+if commandExists snap; then
   echoheader "Upgrading Snaps"
   sudo snap refresh
 fi
 
-if commandExists flatpak ; then
+if commandExists flatpak; then
   echoheader "Upgrading Flatpaks"
   sudo flatpak update --assumeyes
 fi
 
-if commandExists update-grub ; then
+if commandExists update-grub; then
   echoheader "Updating GRUB"
   sudo update-grub
 fi
 
-if commandExists updateScripts ; then
+if commandExists updateScripts; then
   echoheader "Updating Scripts"
   updateScripts
 fi
 
-if commandExists npm ; then
+if commandExists npm; then
   echoheader "Updating NPM Packages"
   cd /usr/lib/node_modules && sudo npm update -g
 fi
 
-if commandExists rustup ; then
+if commandExists rustup; then
   echoheader "Updating Rust"
   rustup update
 fi
 
-if commandExists composer ; then
+if commandExists composer; then
   echoheader "Updating Composer and Composer Packages"
   sudo -H composer self-update
   cd ~/.config/composer/ && composer update

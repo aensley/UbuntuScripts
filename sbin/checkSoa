@@ -3,8 +3,7 @@
 # Check the SOA of a domain.
 # Obtained from: http://examples.oreilly.com/dns5/ via http://stackoverflow.com/a/390986/
 
-if test "$1" = ""
-then
+if test "$1" = ""; then
   echo usage: $0 domain
   exit 1
 fi
@@ -15,10 +14,9 @@ DOMAIN=$1
 # (The names are always in the last field).  Use sort -u to weed out
 # duplicates; we don't actually care about collation.
 #
-SERVERS=`nslookup -type=ns $DOMAIN |\
-                 awk '/nameserver/ {print $NF}' | sort -u`
-if test "$SERVERS" = ""
-then
+SERVERS=$(nslookup -type=ns $DOMAIN |
+  awk '/nameserver/ {print $NF}' | sort -u)
+if test "$SERVERS" = ""; then
   #
   # Didn't find any servers.  Just quit silently; nslookup will
   # have detected this error and printed a message.  That will
@@ -35,8 +33,7 @@ fi
 #
 # NOTE: this loop is rather long; don't be fooled.
 #
-for i in $SERVERS
-do
+for i in $SERVERS; do
   nslookup >/tmp/nso.$$ 2>/tmp/nse.$$ <<-EOF
     server $i
     set nosearch
@@ -52,17 +49,15 @@ EOF
   # authoritative info elsewhere.
   #
   if egrep "Non-authoritative|Authoritative answers can be" \
-                                          /tmp/nso.$$ >/dev/null
-  then
+    /tmp/nso.$$ >/dev/null; then
     echo $i is not authoritative for $DOMAIN
     continue
   fi
   #
   # We know the server is authoritative; extract the serial number.
   #
-  SERIAL=`cat /tmp/nso.$$ | grep serial | sed -e "s/.*= //"`
-  if test "$SERIAL" = ""
-  then
+  SERIAL=$(cat /tmp/nso.$$ | grep serial | sed -e "s/.*= //")
+  if test "$SERIAL" = ""; then
     #
     # We get here if SERIAL is null.  In this case, there should
     # be an error message from nslookup; so cat the "standard
@@ -75,7 +70,7 @@ EOF
     #
     echo $i has serial number $SERIAL
   fi
-done  # end of the "for" loop
+done # end of the "for" loop
 
 #
 # Delete the temporary files.

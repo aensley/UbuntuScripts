@@ -6,10 +6,10 @@ set -euo pipefail
 
 sudo install -d -m 0755 /etc/apt/keyrings
 
-wget -qO- https://packages.mozilla.org/apt/repo-signing-key.gpg \
-  | sudo tee /etc/apt/keyrings/packages.mozilla.org.asc >/dev/null
+wget -qO- https://packages.mozilla.org/apt/repo-signing-key.gpg |
+  sudo tee /etc/apt/keyrings/packages.mozilla.org.asc >/dev/null
 
-sudo tee /etc/apt/sources.list.d/mozilla.sources > /dev/null << EOF
+sudo tee /etc/apt/sources.list.d/mozilla.sources >/dev/null <<EOF
 Types: deb
 URIs: https://packages.mozilla.org/apt
 Suites: mozilla
