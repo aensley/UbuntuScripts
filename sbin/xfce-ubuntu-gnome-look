@@ -13,7 +13,6 @@
 # Do NOT run with sudo; it elevates only the apt step.
 
 set -euo pipefail
-HERE="$(cd "$(dirname "$0")" && pwd)"
 
 # ----------------------------------------------------------------------------
 # 1. Packages (Yaru theme + Ubuntu font; no plank, no xfdashboard)
