@@ -2,4 +2,4 @@
 
 # Stop a Docker container
 
-sudo docker stop $1
+sudo docker stop "$1"

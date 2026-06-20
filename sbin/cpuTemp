@@ -5,8 +5,8 @@
 
 TP=$(/usr/bin/sensors -A | grep "Core 0" | sed -e 's/Core 0:[ ]*+//' -e 's/.0[a-zA-Z0-9(=+,.°) ]*//' | awk "NR==$1")
 
-if [ -z $2 ]; then
-  echo $TP
+if [ -z "$2" ]; then
+  echo "$TP"
 fi
 
-exit $TP
+exit "$TP"

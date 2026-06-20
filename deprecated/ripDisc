@@ -75,11 +75,11 @@ disc_name=""
 while [ -z "$disc_name" ]; do
   echo
   echo -n "What is the name of this ${disc_type}?: "
-  read -e disc_name
+  read -re disc_name
 done
 
 # Replace all non-alphanumeric characters with "_"
-escaped_disc_name=$(echo "${disc_name}" | tr -c '[[:alnum:]]' '_')
+escaped_disc_name=$(echo "${disc_name}" | tr -c '[:alnum:]' '_')
 
 preset_file=''
 preset_name=''
@@ -94,7 +94,7 @@ fi
 
 SRC=${SRC}${escaped_disc_name}/
 DEST=${DEST}${escaped_disc_name}/
-mkdir -p ${SRC}
+mkdir -p "${SRC}"
 
 echo
 hr
@@ -107,9 +107,7 @@ hr
 echo
 
 ##### Rip the disc #####
-/usr/bin/makemkvcon mkv disc:0 all ${SRC}
-
-if [ $? = 0 ]; then
+if /usr/bin/makemkvcon mkv disc:0 all "${SRC}"; then
   echo
   hr
   echo
@@ -121,23 +119,21 @@ if [ $? = 0 ]; then
   echo
   eject
 
-  mkdir -p ${DEST}
+  mkdir -p "${DEST}"
 
-  for FILE in $(ls ${SRC}); do
+  for FILE in "${SRC}"*; do
     echo
     hr
-    filename=$(basename ${FILE})
+    filename=$(basename "${FILE}")
     echo
     echo "## ${filename}"
     echo
     filename=${filename%.*}
 
-    /usr/bin/HandBrakeCLI -i ${SRC}${FILE} -o ${DEST}${filename}.${DEST_EXT} --verbose=0 --optimize --preset-import-file ${preset_file} --preset "${preset_name}"
-
-    if [ $? = 0 ]; then
+    if /usr/bin/HandBrakeCLI -i "${FILE}" -o "${DEST}${filename}.${DEST_EXT}" --verbose=0 --optimize --preset-import-file "${preset_file}" --preset "${preset_name}"; then
       echo
-      echo "Success! Deleting source file: ${SRC}${FILE}"
-      rm -f ${SRC}${FILE}
+      echo "Success! Deleting source file: ${FILE}"
+      rm -f "${FILE}"
     fi
   done
 
@@ -152,7 +148,7 @@ if [ $? = 0 ]; then
   hr
   echo
 
-  xdg-open ${DEST}
+  xdg-open "${DEST}"
   if [ "${disc_type}" = "Movie" ]; then
     xdg-open "http://www.imdb.com/find?s=tt&ttype=ft&q=${disc_name}"
   else

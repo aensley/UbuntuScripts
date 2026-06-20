@@ -21,7 +21,7 @@ while [[ $1 ]]; do
     n=${#BASH_REMATCH[*]}
     while [[ $i -lt $n ]]; do
       echo "  capture[$i]: ${BASH_REMATCH[$i]}"
-      let i++
+      ((i++))
     done
   else
     echo "$1 does not match"

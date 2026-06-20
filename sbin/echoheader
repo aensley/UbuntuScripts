@@ -6,7 +6,7 @@ echo
 echo -n "========== "
 bashGreen
 bashBold
-echo -n $1
+echo -n "$1"
 bashReset
 echo " =========="
 echo

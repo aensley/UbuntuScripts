@@ -4,7 +4,7 @@
 # Obtained from: http://examples.oreilly.com/dns5/ via http://stackoverflow.com/a/390986/
 
 if test "$1" = ""; then
-  echo usage: $0 domain
+  echo "usage: $0 domain"
   exit 1
 fi
 DOMAIN=$1
@@ -14,7 +14,7 @@ DOMAIN=$1
 # (The names are always in the last field).  Use sort -u to weed out
 # duplicates; we don't actually care about collation.
 #
-SERVERS=$(nslookup -type=ns $DOMAIN |
+SERVERS=$(nslookup -type=ns "$DOMAIN" |
   awk '/nameserver/ {print $NF}' | sort -u)
 if test "$SERVERS" = ""; then
   #
@@ -48,9 +48,9 @@ EOF
   # response says so, or (b) the response tells you to find
   # authoritative info elsewhere.
   #
-  if egrep "Non-authoritative|Authoritative answers can be" \
+  if grep -E "Non-authoritative|Authoritative answers can be" \
     /tmp/nso.$$ >/dev/null; then
-    echo $i is not authoritative for $DOMAIN
+    echo "$i is not authoritative for $DOMAIN"
     continue
   fi
   #
@@ -68,7 +68,7 @@ EOF
     #
     # Report the server's name and its serial number.
     #
-    echo $i has serial number $SERIAL
+    echo "$i has serial number $SERIAL"
   fi
 done # end of the "for" loop
 

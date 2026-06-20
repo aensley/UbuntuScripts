@@ -8,7 +8,7 @@ databases=$(mysql -ss -e "SHOW DATABASES;" | grep -v information_schema | grep -
 for db in ${databases}; do
   target=${BACKUP_DIRECTORY}/${db}.sql
   # Dump database
-  mysqldump --single-transaction --default-character-set=utf8mb4 ${db} >${target}
+  mysqldump --single-transaction --default-character-set=utf8mb4 "${db}" >"${target}"
   # Gzip dump
-  gzip -f -9 --rsyncable ${target}
+  gzip -f -9 --rsyncable "${target}"
 done

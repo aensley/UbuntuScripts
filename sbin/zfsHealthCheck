@@ -19,7 +19,7 @@ RECIPIENT="root"
 # Health - Check if all zfs volumes are in good condition. We are looking for
 # any keyword signifying a degraded or broken array.
 
-condition=$(/sbin/zpool status | egrep -i '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
+condition=$(/sbin/zpool status | grep -Ei '(DEGRADED|FAULTED|OFFLINE|UNAVAIL|REMOVED|FAIL|DESTROYED|corrupt|cannot|unrecover)')
 if [ "${condition}" ]; then
   emailSubject="$(hostname) - ZFS pool - HEALTH fault"
   problems=1
@@ -42,7 +42,7 @@ maxCapacity=80
 if [ ${problems} -eq 0 ]; then
   capacity=$(/sbin/zpool list -H -o capacity)
   for line in ${capacity//%/}; do
-    if [ $line -ge $maxCapacity ]; then
+    if [ "$line" -ge $maxCapacity ]; then
       emailSubject="$(hostname) - ZFS pool - Capacity Exceeded"
       problems=1
     fi
@@ -85,18 +85,18 @@ if [ ${problems} -eq 0 ]; then
   zfsVolumes=$(/sbin/zpool list -H -o name)
 
   for volume in ${zfsVolumes}; do
-    if [ $(/sbin/zpool status $volume | egrep -c "none requested") -ge 1 ]; then
+    if [ "$(/sbin/zpool status "$volume" | grep -Ec "none requested")" -ge 1 ]; then
       echo "ERROR: You need to run \"zpool scrub $volume\" before this script can monitor the scrub expiration time."
       break
     fi
-    if [ $(/sbin/zpool status $volume | egrep -c "scrub in progress|resilver") -ge 1 ]; then
+    if [ "$(/sbin/zpool status "$volume" | grep -Ec "scrub in progress|resilver")" -ge 1 ]; then
       break
     fi
 
-    scrubRawDate=$(/sbin/zpool status $volume | grep scrub | awk '{print $11" "$12" " $13" " $14" "$15}')
+    scrubRawDate=$(/sbin/zpool status "$volume" | grep scrub | awk '{print $11" "$12" " $13" " $14" "$15}')
     scrubDate=$(date -d "$scrubRawDate" +%s)
 
-    if [ $(($currentDate - $scrubDate)) -ge $scrubExpire ]; then
+    if [ $((currentDate - scrubDate)) -ge $scrubExpire ]; then
       emailSubject="$(hostname) - ZFS pool - Scrub Time Expired. Scrub Needed on Volume(s)"
       problems=1
     fi
@@ -114,7 +114,7 @@ fi
 
 if [ "$problems" -ne 0 ]; then
   echo -e "$emailSubject \n\n\n $(/sbin/zpool list) \n\n\n $(/sbin/zpool status)" | mail -s "$emailSubject" "$RECIPIENT"
-  logger $emailSubject
+  logger "$emailSubject"
 fi
 
 ### EOF ###

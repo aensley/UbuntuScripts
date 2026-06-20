@@ -8,9 +8,9 @@ uname -r
 
 echoheader "Kernels to Purge"
 
-oldList=$(oldKernels)
-echo "${oldList}"
+mapfile -t packages < <(oldKernels)
+echo "${packages[@]}"
 
 echoheader "Purging Old Kernels"
 
-sudo apt purge ${oldList%%*( )}
+sudo apt purge "${packages[@]}"

@@ -21,10 +21,10 @@ fi
 DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
 
 # Switch to the default branch (usually main)
-git checkout ${DEFAULT_BRANCH} &&
+git checkout "${DEFAULT_BRANCH}" &&
   # Pull in updates
   git pull &&
   # Checkout the new remote branch
-  git checkout $1 &&
+  git checkout "$1" &&
   # Make sure our local copy is up-to-date (in case it already existed)
   git pull

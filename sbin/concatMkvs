@@ -4,7 +4,7 @@ echoheader 'Concat MKVs'
 
 echo 'This script will concatenate all MKVs in the current directory into a single output.mkv'
 echo
-read -p 'Press [Enter] to continue or [CTRL-C] to abort...'
+read -rp 'Press [Enter] to continue or [CTRL-C] to abort...'
 echo
 
 for f in ./*.mkv; do

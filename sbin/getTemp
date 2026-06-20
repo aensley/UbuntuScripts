@@ -3,7 +3,7 @@
 # Reports the request sensor's temperature.
 # Usage: getTemp <sensor name>
 
-if [ -z $1 ]; then
+if [ -z "$1" ]; then
   echo "Sensor name required! Usage: getTemp <sensor name>"
   exit
 fi
@@ -12,8 +12,8 @@ SENSORNAME="$1"
 
 TP=$(/usr/bin/sensors -A | grep "${SENSORNAME}" -m 1 | sed -e "s/${SENSORNAME}:[ ]*+//" -e 's/\.[a-zA-Z0-9(=+,.°) ]*//')
 
-if [ -z $2 ]; then
-  echo $TP
+if [ -z "$2" ]; then
+  echo "$TP"
 fi
 
-exit $TP
+exit "$TP"
