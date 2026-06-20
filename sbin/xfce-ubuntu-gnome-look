@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 #
 # xfce-ubuntu-gnome-look
+#
 # Xubuntu 26.04 minimal (Xfce 4.20, X11): Ubuntu-style two-panel layout
 # (full-width top bar + left dock starting below it), Aero-snap, a Super-tap
 # application menu, AND theming/styling that matches Ubuntu 26.04 / GNOME 50 (Yaru).
 # No Plank, no xfdashboard.
 #
 # Layout, launchers, and window buttons come from the companion profile:
-# ubuntu-look.tar.bz2 (loaded automatically at the end).
+# xfce-ubuntu-gnome-look.tar.bz2 (loaded automatically at the end).
 #
-# Run from the folder that also contains ubuntu-look.tar.bz2. Do NOT run with sudo;
-# it elevates only the apt step.
+# Do NOT run with sudo; it elevates only the apt step.
 
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -102,9 +102,9 @@ EOF
 # 4. Load the two-panel layout; make the panels dark (Ubuntu top bar + dock),
 #    then seat the left dock precisely under the top bar from the ACTUAL screen size.
 # ----------------------------------------------------------------------------
-if [ -f "$HOME/UbuntuScriptsGit/config/xfce-ubuntu-gnome-look.tar.bz2" ]; then
+if [ -f "/usr/local/share/UbuntuScripts/xfce-ubuntu-gnome-look.tar.bz2" ]; then
   echo ">> loading panel layout"
-  xfce4-panel-profiles load "$HOME/UbuntuScriptsGit/config/xfce-ubuntu-gnome-look.tar.bz2"
+  xfce4-panel-profiles load "/usr/local/share/UbuntuScripts/xfce-ubuntu-gnome-look.tar.bz2"
   sleep 2
   xset xfce4-panel /panels/dark-mode bool "true"   # dark top bar + dock
   H="$(xrandr --current 2>/dev/null | awk '/\*/{print $1; exit}' | cut -dx -f2)"; H="${H:-768}"
@@ -119,8 +119,8 @@ if [ -f "$HOME/UbuntuScriptsGit/config/xfce-ubuntu-gnome-look.tar.bz2" ]; then
   xfce4-panel -r >/dev/null 2>&1 || true
   echo ">> left dock: length=${LEN}%  center-y=${CENTER}  (screen height ${H}, top bar ${TOPH}px)"
 else
-  echo "!! xfce-ubuntu-gnome-look.tar.bz2 not found in $HOME/UbuntuScriptsGit/config - skipped panel load."
-  echo "   Run: xfce4-panel-profiles load $HOME/UbuntuScriptsGit/config/xfce-ubuntu-gnome-look.tar.bz2"
+  echo "!! xfce-ubuntu-gnome-look.tar.bz2 not found in /usr/local/share/UbuntuScripts - skipped panel load."
+  echo "   Run: xfce4-panel-profiles load /usr/local/share/UbuntuScripts/xfce-ubuntu-gnome-look.tar.bz2"
 fi
 
 echo

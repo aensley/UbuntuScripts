@@ -5,7 +5,6 @@
 SCRIPTS_GIT_DIR=~/UbuntuScriptsGit/
 SCRIPTS_DIR=/usr/local/sbin/
 SHARE_DIR=/usr/local/share/
-SYSTEMD_DIR=~/.config/systemd/user/
 GIT_REPO=https://github.com/aensley/UbuntuScripts.git
 
 echosmallerheader () {
