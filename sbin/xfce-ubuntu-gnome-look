@@ -21,7 +21,7 @@ PKGS=(
   xcape xfce4-panel-profiles
   xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin
   xfce4-power-manager xfce4-notifyd
-  thunar xfce4-terminal
+  thunar thunar-archive-plugin engrampa xfce4-terminal
   yaru-theme-gtk yaru-theme-icon yaru-theme-sound fonts-ubuntu
 )
 echo ">> apt install: ${PKGS[*]}"
@@ -84,6 +84,16 @@ set_kbd "/commands/custom/<Primary>Escape" "xfce4-popup-whiskermenu"
 mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart"
 cat >"$HOME/.local/bin/super-menu-xcape.sh" <<'EOF'
 #!/bin/sh
+set_kbd() { # $1=property  $2=value
+  xfconf-query -c xfce4-keyboard-shortcuts -p "$1" -r 2>/dev/null || true
+  xfconf-query -c xfce4-keyboard-shortcuts -p "$1" -n -t string -s "$2"
+}
+# Aero snap. Tokens verified to need the _key suffix or they silently do nothing.
+set_kbd "/xfwm4/custom/<Super>Left" "tile_left_key"
+set_kbd "/xfwm4/custom/<Super>Right" "tile_right_key"
+set_kbd "/xfwm4/custom/<Super>Up" "maximize_window_key" # toggles maximize/restore
+set_kbd "/xfwm4/custom/<Super>Down" "hide_window_key"   # minimize, like Win+Down
+# Super TAP -> Whisker menu, via xcape.
 pkill -x xcape 2>/dev/null
 exec xcape -e 'Super_L=Control_L|Escape'
 EOF
