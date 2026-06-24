@@ -71,14 +71,14 @@ set_kbd "/xfwm4/custom/<Super>Down" "hide_window_key"   # minimize, like Win+Dow
 xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/Super_L" -r 2>/dev/null || true
 
 # 3c. Super TAP -> Whisker menu, via xcape.
-#     xcape emits F13 only when Super is tapped and released alone, so holding Super
-#     for the Super+arrow snaps above is unaffected.  Using a bare function key (F13)
-#     rather than a modifier combo (Ctrl+Esc) avoids xcape temporarily asserting the
-#     Control_L modifier, which was causing xfwm4 to lose its passive grab on
-#     Super+Up after the first Super tap.
+#     xcape emits Ctrl+Esc only when Super is tapped and released alone, so holding
+#     Super for the Super+arrow snaps above is unaffected.  Firing Ctrl+Esc causes
+#     xfwm4 to lose its passive grabs on Super+key combos; the shortcut target is a
+#     wrapper that immediately re-registers those grabs after triggering the menu.
+#     (F13 was tried as a modifier-free alternative but xcape can only send keys by
+#     keycode — F13 has no keycode on standard keyboards so it silently fails.)
 xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/<Control>Escape" -r 2>/dev/null || true
-xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/<Primary>Escape" -r 2>/dev/null || true
-set_kbd "/commands/custom/F13" "xfce4-popup-whiskermenu"
+xfconf-query -c xfce4-keyboard-shortcuts -p "/commands/custom/F13" -r 2>/dev/null || true
 
 # Robust autostart: a tiny wrapper (no reserved chars in the .desktop Exec) that
 # also clears any stale xcape before starting.
@@ -86,7 +86,7 @@ mkdir -p "$HOME/.local/bin" "$HOME/.config/autostart"
 cat >"$HOME/.local/bin/super-menu-xcape.sh" <<'EOF'
 #!/bin/sh
 pkill -x xcape 2>/dev/null
-exec xcape -e 'Super_L=F13'
+exec xcape -e 'Super_L=Control_L|Escape'
 EOF
 chmod +x "$HOME/.local/bin/super-menu-xcape.sh"
 cat >"$HOME/.config/autostart/xcape-super.desktop" <<EOF
@@ -97,6 +97,23 @@ Exec=$HOME/.local/bin/super-menu-xcape.sh
 X-GNOME-Autostart-enabled=true
 Hidden=false
 EOF
+
+# Whisker-menu wrapper: opens the menu then immediately re-registers the xfwm4
+# Super+key grabs that xcape's Ctrl+Esc emission disrupts.
+cat >"$HOME/.local/bin/xfce4-open-whisker.sh" <<'EOF'
+#!/bin/sh
+xfce4-popup-whiskermenu
+_r() {
+    xfconf-query -c xfce4-keyboard-shortcuts -p "$1" -r 2>/dev/null || true
+    xfconf-query -c xfce4-keyboard-shortcuts -p "$1" -n -t string -s "$2"
+}
+_r "/xfwm4/custom/<Super>Up"    "maximize_window_key"
+_r "/xfwm4/custom/<Super>Down"  "hide_window_key"
+_r "/xfwm4/custom/<Super>Left"  "tile_left_key"
+_r "/xfwm4/custom/<Super>Right" "tile_right_key"
+EOF
+chmod +x "$HOME/.local/bin/xfce4-open-whisker.sh"
+set_kbd "/commands/custom/<Primary>Escape" "$HOME/.local/bin/xfce4-open-whisker.sh"
 "$HOME/.local/bin/super-menu-xcape.sh" & # start now, no relogin needed
 
 # ----------------------------------------------------------------------------
