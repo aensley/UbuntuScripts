@@ -38,7 +38,7 @@ installApps() {
 
 installBrave() {
   echoHugeHeader "Installing Brave"
-  curl -fsS https://dl.brave.com/install.sh | sh
+  curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
 }
 
 installChromium() {
@@ -82,11 +82,11 @@ installGimp() {
 }
 
 installJdk() {
-  toInstall="${toInstall} openjdk-21-jdk"
+  toInstall="${toInstall} openjdk-25-jdk"
 }
 
 installJre() {
-  toInstall="${toInstall} openjdk-21-jre"
+  toInstall="${toInstall} openjdk-25-jre"
 }
 
 installKrita() {
@@ -138,14 +138,14 @@ removeChoices=$(
 
 installChoices=$(
   whiptail --title "Select Software to Install" --checklist "Select Software to Install" 23 50 17 \
-    Brave "Brave Browser" on \
+    Brave "Brave Origin" on \
     Chromium "Chromium" off \
     Docker "Docker" off \
     Enpass "Enpass" on \
     Flatpak "Flatpak" off \
     Gimp "GIMP" on \
-    Jdk "JDK 21 (LTS)" on \
-    Jre "JRE 21 (LTS)" off \
+    Jdk "JDK 25" on \
+    Jre "JRE 25" off \
     Krita "Krita" on \
     Nodejs "Node.js 24" on \
     Rust "Rust" on \

@@ -17,11 +17,12 @@ set -euo pipefail
 # ----------------------------------------------------------------------------
 # 1. Packages (Yaru theme + Ubuntu font; no plank, no xfdashboard)
 # ----------------------------------------------------------------------------
+sudo apt purge ayatana-indicator-application ayatana-indicator-common
 PKGS=(
   xcape xfce4-panel-profiles
   xfce4-whiskermenu-plugin xfce4-pulseaudio-plugin
   xfce4-power-manager xfce4-notifyd
-  thunar thunar-archive-plugin engrampa xfce4-terminal
+  thunar thunar-archive-plugin engrampa thunar-media-tags-plugin xfce4-terminal
   yaru-theme-gtk yaru-theme-icon yaru-theme-sound fonts-ubuntu
 )
 echo ">> apt install: ${PKGS[*]}"
@@ -50,7 +51,7 @@ gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark' || true
 xset xfwm4 /general/theme string "$THEME"
 xset xfwm4 /general/button_layout string "|HMC"
 xset xfwm4 /general/title_alignment string "center"
-xset xfwm4 /general/use_compositing bool "true"
+xset xfwm4 /general/use_compositing bool "false"
 
 # ----------------------------------------------------------------------------
 # 3. Keyboard shortcuts  (reset-then-create so nothing is a stale no-op)
