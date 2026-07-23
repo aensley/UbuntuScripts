@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#
+# install-yt-dlp - Install yt-dlp using pipx
+#
+set -euo pipefail
+
+sudo apt install pipx ffmpeg
+pipx install "yt-dlp[default,curl-cffi,secretstorage]"
+pipx ensurepath
