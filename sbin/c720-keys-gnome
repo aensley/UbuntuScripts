@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+#
+# c720-keys-gnome
+#
+# Installs keyd, writes the Acer C720 F-key/shortcut config, and
+# (re)starts the keyd service. Safe to re-run.
+
+set -euo pipefail
+
+CONF_DIR="/etc/keyd"
+CONF_FILE="${CONF_DIR}/default.conf"
+
+if [[ $EUID -ne 0 ]]; then
+    echo "This script must be run as root (sudo)." >&2
+    exit 1
+fi
+
+echo "==> Checking for keyd..."
+if ! command -v keyd >/dev/null 2>&1; then
+    echo "keyd not found. Attempting install via apt..."
+    if apt-get update && apt-get install -y keyd; then
+        echo "keyd installed via apt."
+    else
+        echo "apt install failed or package unavailable; building from source..."
+        BUILD_DIR="$(mktemp -d)"
+        apt-get install -y git build-essential
+        git clone https://github.com/rvaiya/keyd "${BUILD_DIR}/keyd"
+        make -C "${BUILD_DIR}/keyd"
+        make -C "${BUILD_DIR}/keyd" install
+        rm -rf "${BUILD_DIR}"
+    fi
+else
+    echo "keyd already installed at $(command -v keyd)."
+fi
+
+echo "==> Ensuring ${CONF_DIR} exists..."
+mkdir -p "${CONF_DIR}"
+
+if [[ -f "${CONF_FILE}" ]]; then
+    BACKUP="${CONF_FILE}.bak.$(date +%Y%m%d%H%M%S)"
+    echo "==> Existing config found. Backing up to ${BACKUP}"
+    cp "${CONF_FILE}" "${BACKUP}"
+fi
+
+echo "==> Writing ${CONF_FILE}"
+cat > "${CONF_FILE}" <<'EOF'
+[ids]
+*
+
+[main]
+f1  = back
+f2  = forward
+f3  = refresh
+f4  = f11
+f5  = leftmeta
+f6  = brightnessdown
+f7  = brightnessup
+f8  = mute
+f9  = volumedown
+f10 = volumeup
+
+shift+backspace = delete
+
+C-A-left  = home
+C-A-right = end
+EOF
+
+echo "==> Enabling and restarting keyd..."
+systemctl enable keyd
+systemctl restart keyd
+
+echo "==> Done. Current status:"
+systemctl status keyd --no-pager -l || true
+
+echo
+echo "Tip: run 'sudo keyd monitor' and press each remapped key to confirm behavior."
