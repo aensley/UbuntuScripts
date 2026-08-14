@@ -92,10 +92,15 @@ installJre() {
 installKrita() {
   toInstall="${toInstall} krita"
 }
+
 installNodejs() {
   echoHugeHeader "Installing Node.js"
   wget -qO- https://deb.nodesource.com/setup_24.x | sudo bash -
   toInstall="${toInstall} nodejs"
+}
+
+installOpenssh-server() {
+  toInstall="${toInstall} openssh-server"
 }
 
 installRust() {
@@ -148,6 +153,7 @@ installChoices=$(
     Jre "JRE 25" off \
     Krita "Krita" on \
     Nodejs "Node.js 24" on \
+    Openssh-server "OpenSSH Server" on \
     Rust "Rust" on \
     Sensors "Sensors" on \
     Vlc "VLC" on \

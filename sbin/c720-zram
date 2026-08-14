@@ -25,7 +25,6 @@ EOF
 
 sudo sysctl --system
 
-
 echo
 echo "Success"
 echo
@@ -53,4 +52,3 @@ echo "    awensley@acer-c720-i3:~$ free -m"
 echo "                   total        used        free      shared  buff/cache   available"
 echo "    Mem:            3338        1903         330         251        1660        1435"
 echo "    Swap:          13198           0       13198"
-
