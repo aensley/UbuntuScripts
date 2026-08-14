@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#
+# install-resilio-sync - Install Resilio Sync from the official apt repo
+#
+set -euo pipefail
+
+wget -qO- https://linux-packages.resilio.com/resilio-sync/key.asc |
+  sudo tee /etc/apt/trusted.gpg.d/resilio-sync.asc >/dev/null 2>&1
+
+sudo tee /etc/apt/sources.list.d/resilio.sources >/dev/null <<EOF
+Types: deb
+URIs: http://linux-packages.resilio.com/resilio-sync/deb/
+Suites: resilio-sync
+Components: non-free
+Architectures: amd64
+Signed-By: /etc/apt/trusted.gpg.d/resilio-sync.asc
+EOF
+
+sudo apt update && sudo apt install resilio-sync
