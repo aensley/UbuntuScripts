@@ -24,3 +24,33 @@ vm.page-cluster = 0
 EOF
 
 sudo sysctl --system
+
+
+echo
+echo "Success"
+echo
+echo "Verify zram and swap settings are working:"
+echo "    zramctl"
+echo "    sysctl vm.swappiness vm.page-cluster"
+echo "    swapon --show"
+echo "    free -m"
+echo
+echo "They should output something like:"
+echo "    awensley@acer-c720-i3:~$ zramctl"
+echo "    NAME       ALGORITHM DISKSIZE DATA COMPR TOTAL STREAMS MOUNTPOINT"
+echo "    /dev/zram0 zstd          4.9G   4K   64B   20K         [SWAP]"
+echo
+echo "    awensley@acer-c720-i3:~$  sysctl vm.swappiness vm.page-cluster"
+echo "    vm.swappiness = 180"
+echo "    vm.page-cluster = 0"
+echo
+echo "    awensley@acer-c720-i3:~$ swapon --show"
+echo "    NAME       TYPE      SIZE USED PRIO"
+echo "    /swap.img  file        8G   0B   -1"
+echo "    /dev/zram0 partition 4.9G   0B  100"
+echo
+echo "    awensley@acer-c720-i3:~$ free -m"
+echo "                   total        used        free      shared  buff/cache   available"
+echo "    Mem:            3338        1903         330         251        1660        1435"
+echo "    Swap:          13198           0       13198"
+
