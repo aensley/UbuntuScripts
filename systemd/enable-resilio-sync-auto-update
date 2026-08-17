@@ -2,9 +2,8 @@
 #
 # enable-resilio-auto-update
 #
-# Installs install-resilio-sync to a fixed path so the systemd timer
-# can find it, drops in the unit files, and enables the weekly timer.
-# Safe to re-run.
+# Installs systemd unit files and enables the weekly timer for
+#   install-resilio-sync to run automatically. Safe to re-run.
 #
 set -euo pipefail
 
