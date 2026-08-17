@@ -1,0 +1,10 @@
+[Unit]
+Description=Resilio Sync binary update check
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/install-resilio-sync
+# Log output goes to the journal; check with:
+#   journalctl -u resilio-sync-update.service

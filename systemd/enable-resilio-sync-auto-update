@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+#
+# enable-resilio-auto-update
+#
+# Installs install-resilio-sync to a fixed path so the systemd timer
+# can find it, drops in the unit files, and enables the weekly timer.
+# Safe to re-run.
+#
+set -euo pipefail
+
+if [[ $EUID -ne 0 ]]; then
+    echo "ERROR: must run as root" >&2
+    exit 1
+fi
+
+UNIT_DIR="/etc/systemd/system"
+
+install -m 0644 -o root -g root "$(dirname "$0")/resilio-sync-update.service" "${UNIT_DIR}/resilio-sync-update.service"
+install -m 0644 -o root -g root "$(dirname "$0")/resilio-sync-update.timer" "${UNIT_DIR}/resilio-sync-update.timer"
+echo "installed ${UNIT_DIR}/resilio-sync-update.{service,timer}"
+
+systemctl daemon-reload
+systemctl enable --now resilio-sync-update.timer
+
+echo
+echo "Enabled. Check status with:"
+echo "  systemctl list-timers resilio-sync-update.timer"
+echo "  journalctl -u resilio-sync-update.service"
+echo
+echo "First run happens at the next Sunday 03:00 (+ up to 2h jitter),"
+echo "or immediately if the machine was off at a missed run."
+echo "To trigger a run right now without waiting: systemctl start resilio-sync-update.service"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# setup-keyd-c720.sh
+# c720-keys-gnome
 #
 # Installs keyd, writes the Acer C720 F-key/shortcut config, and
 # (re)starts the keyd service. Safe to re-run.

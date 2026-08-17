@@ -1,0 +1,15 @@
+[Unit]
+Description=Weekly Resilio Sync binary update check
+
+[Timer]
+OnCalendar=Sun *-*-* 03:00:00
+# Spreads actual run time across a 2-hour window so, if you ever point
+# multiple machines at this, they don't all hit linux-packages.resilio.com
+# at the same instant.
+RandomizedDelaySec=2h
+# If a machine was off/asleep at the scheduled time, run once shortly
+# after it's back, instead of silently skipping that week.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

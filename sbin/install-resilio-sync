@@ -1,19 +1,187 @@
 #!/usr/bin/env bash
 #
-# install-resilio-sync - Install Resilio Sync from the official apt repo
+# install-resilio-sync - Install/upgrade/rollback the bare rslsync binary
+#                         via the official apt repo's metadata, without
+#                         ever running `apt install` on the package.
+#
+# Why apt-get download instead of the raw tarball:
+#   - Versions are explicit and pinnable, not just "whatever stable means
+#     today."
+#   - Integrity is checked against the repo's GPG-signed Release file
+#     automatically -- the tarball has no published checksum to check
+#     against.
+#   - `apt-get download` only fetches the .deb into the cwd. It does NOT
+#     run postinst/preinst -- no rslsync user, no systemd unit, nothing
+#     gets touched on the system as a side effect.
+#
+# Layout:
+#   /usr/local/lib/resilio-sync/versions/<version>/rslsync   (real binaries)
+#   /usr/local/bin/rslsync -> .../versions/<current>/rslsync (symlink)
+#
+# Upgrading = download new version, flip the symlink, restart daemons
+# that were already running. Rolling back = flip the symlink to a
+# version already on disk, no network needed.
+#
+# Usage:
+#   install-resilio-sync                  # install/upgrade to latest candidate
+#   install-resilio-sync 2.8.6            # install/upgrade to a specific version
+#   install-resilio-sync --rollback 2.8.5 # switch back to a version already on disk
+#   install-resilio-sync --list           # show installed versions + current
 #
 set -euo pipefail
 
-wget -qO- https://linux-packages.resilio.com/resilio-sync/key.asc |
-  sudo tee /etc/apt/trusted.gpg.d/resilio-sync.asc >/dev/null 2>&1
+VERSIONS_ROOT="/usr/local/lib/resilio-sync/versions"
+SYMLINK="/usr/local/bin/rslsync"
+SOURCES_FILE="/etc/apt/sources.list.d/resilio.sources"
+KEY_FILE="/etc/apt/trusted.gpg.d/resilio-sync.asc"
 
-sudo tee /etc/apt/sources.list.d/resilio.sources >/dev/null <<EOF
+if [[ $EUID -ne 0 ]]; then
+  echo "ERROR: must run as root" >&2
+  exit 1
+fi
+
+ensure_repo() {
+  if [[ ! -f "$KEY_FILE" ]]; then
+    wget -qO- https://linux-packages.resilio.com/resilio-sync/key.asc |
+      tee "$KEY_FILE" >/dev/null
+  fi
+  if [[ ! -f "$SOURCES_FILE" ]]; then
+    cat >"$SOURCES_FILE" <<EOF
 Types: deb
 URIs: http://linux-packages.resilio.com/resilio-sync/deb/
 Suites: resilio-sync
 Components: non-free
 Architectures: amd64
-Signed-By: /etc/apt/trusted.gpg.d/resilio-sync.asc
+Signed-By: ${KEY_FILE}
 EOF
+  fi
+  apt-get update -qq
+}
 
-sudo apt update && sudo apt install resilio-sync
+list_versions() {
+  echo "Installed versions:"
+  if [[ -d "$VERSIONS_ROOT" ]]; then
+    for d in "$VERSIONS_ROOT"/*/; do
+      [[ -d "$d" ]] || continue
+      local v
+      v="$(basename "$d")"
+      local marker=""
+      if [[ -L "$SYMLINK" && "$(readlink -f "$SYMLINK")" == "$(readlink -f "${d}rslsync")" ]]; then
+        marker="  <- current"
+      fi
+      echo "  ${v}${marker}"
+    done
+  else
+    echo "  (none)"
+  fi
+}
+
+restart_running_instances() {
+  echo "Restarting active per-user instances (skipping logged-out users)..."
+  for home in /home/*; do
+    [[ -d "$home" ]] || continue
+    local user
+    user="$(basename "$home")"
+    id "$user" &>/dev/null || continue
+    local uid
+    uid="$(id -u "$user")"
+    # Only touch it if that user's runtime dir (i.e. an active session) exists
+    if [[ -d "/run/user/${uid}" ]]; then
+      if machinectl shell "${user}@" /bin/systemctl --user try-restart resilio-sync.service &>/dev/null; then
+        echo "  [ok] ${user}"
+      else
+        echo "  [skip] ${user} (not running, or no active session bus)"
+      fi
+    fi
+  done
+  echo "Users not currently logged in will pick up the new binary automatically on next login."
+}
+
+do_rollback() {
+  local version="$1"
+  local target="${VERSIONS_ROOT}/${version}/rslsync"
+  if [[ ! -x "$target" ]]; then
+    echo "ERROR: version ${version} is not installed locally." >&2
+    list_versions
+    exit 1
+  fi
+  ln -sfn "$target" "$SYMLINK"
+  echo "Rolled back to ${version}."
+  restart_running_instances
+}
+
+do_install() {
+  local requested_version="${1:-}"
+
+  ensure_repo
+
+  local candidate
+  if [[ -n "$requested_version" ]]; then
+    candidate="$requested_version"
+  else
+    candidate="$(apt-cache policy resilio-sync | awk '/Candidate:/ {print $2}')"
+    if [[ -z "$candidate" || "$candidate" == "(none)" ]]; then
+      echo "ERROR: could not determine candidate version from apt-cache policy" >&2
+      exit 1
+    fi
+  fi
+
+  local dest_dir="${VERSIONS_ROOT}/${candidate}"
+  if [[ -x "${dest_dir}/rslsync" ]]; then
+    echo "Version ${candidate} already present on disk, just repointing symlink."
+    ln -sfn "${dest_dir}/rslsync" "$SYMLINK"
+    restart_running_instances
+    return
+  fi
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  trap 'rm -rf "$tmp_dir"' RETURN
+
+  echo "Fetching resilio-sync=${candidate} (.deb, not installed)..."
+  (cd "$tmp_dir" && apt-get download "resilio-sync=${candidate}")
+
+  local deb_file
+  deb_file="$(find "$tmp_dir" -maxdepth 1 -name '*.deb' | head -1)"
+  if [[ -z "$deb_file" ]]; then
+    echo "ERROR: apt-get download did not produce a .deb for version ${candidate}" >&2
+    echo "       run '${0} --list' or 'apt list -a resilio-sync' to see available versions" >&2
+    exit 1
+  fi
+
+  dpkg-deb -x "$deb_file" "${tmp_dir}/extract"
+  local binary
+  binary="$(find "${tmp_dir}/extract" -type f -name rslsync | head -1)"
+  if [[ -z "$binary" ]]; then
+    echo "ERROR: no 'rslsync' binary found inside the .deb -- package layout may have changed" >&2
+    exit 1
+  fi
+
+  mkdir -p "$dest_dir"
+  install -m 0755 -o root -g root "$binary" "${dest_dir}/rslsync"
+  ln -sfn "${dest_dir}/rslsync" "$SYMLINK"
+
+  echo "Installed ${candidate} -> ${dest_dir}/rslsync"
+  echo "Symlinked ${SYMLINK} -> ${dest_dir}/rslsync"
+
+  restart_running_instances
+}
+
+case "${1:-}" in
+  --list)
+    list_versions
+    ;;
+  --rollback)
+    [[ -n "${2:-}" ]] || {
+      echo "usage: $0 --rollback <version>" >&2
+      exit 1
+    }
+    do_rollback "$2"
+    ;;
+  -h | --help)
+    sed -n '2,25p' "$0"
+    ;;
+  *)
+    do_install "${1:-}"
+    ;;
+esac
