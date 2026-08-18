@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+#
+# default-gnome-setup - Install and enable GNOME Shell extensions
+# from extensions.gnome.org. Then set some default GNOME settings via dconf.
+#
+# Installs the extensions listed in EXTENSIONS.
+#
+set -euo pipefail
+
+EXTENSIONS=(
+  'user-avatar-topmenu@basing.si'
+  'monitor@astraext.github.io'
+  'auto-accent-colour@Wartybix'
+)
+
+shell_version=$(gnome-shell --version | grep -oP '[0-9]+\.[0-9]+')
+
+for uuid in "${EXTENSIONS[@]}"; do
+  echo "Installing $uuid ..."
+
+  info=$(curl -sf "https://extensions.gnome.org/extension-info/?uuid=${uuid}&shell_version=${shell_version}")
+  download_path=$(echo "$info" | jq -r '.download_url')
+
+  if [ "$download_path" = "null" ] || [ -z "$download_path" ]; then
+    echo "No build of $uuid found for GNOME Shell ${shell_version}" >&2
+    exit 1
+  fi
+
+  zip=$(mktemp --suffix=.shell-extension.zip)
+  curl -sfL "https://extensions.gnome.org${download_path}" -o "$zip"
+
+  gnome-extensions install --force "$zip"
+  gnome-extensions enable "$uuid"
+
+  rm -f "$zip"
+done
+
+echo "Setting default Gnome settings ..."
+
+dconf load / <<'DCONF_EOF'
+[org/gnome/desktop/app-folders]
+folder-children=['System', 'Utilities']
+
+[org/gnome/desktop/app-folders/folders/System]
+apps=['nm-connection-editor.desktop', 'org.gnome.baobab.desktop', 'org.gnome.DiskUtility.desktop', 'im-config.desktop', 'org.gnome.Logs.desktop', 'org.gnome.Sysprof.desktop']
+name='X-GNOME-Shell-System.directory'
+translate=true
+
+[org/gnome/desktop/app-folders/folders/Utilities]
+apps=['org.gnome.Papers.desktop', 'org.gnome.font-viewer.desktop', 'org.gnome.Loupe.desktop', 'org.gnome.seahorse.Application.desktop']
+name='X-GNOME-Shell-Utilities.directory'
+translate=true
+
+[org/gnome/desktop/background]
+primary-color='#000000000000'
+secondary-color='#000000000000'
+
+[org/gnome/desktop/input-sources]
+sources=[('xkb', 'us')]
+
+[org/gnome/desktop/interface]
+clock-format='12h'
+clock-show-weekday=true
+color-scheme='prefer-dark'
+gtk-theme='Yaru-dark'
+icon-theme='Yaru-dark'
+show-battery-percentage=true
+
+[org/gnome/desktop/peripherals/touchpad]
+natural-scroll=false
+two-finger-scrolling-enabled=true
+
+[org/gnome/desktop/privacy]
+report-technical-problems=false
+
+[org/gnome/desktop/wm/preferences]
+num-workspaces=1
+
+[org/gnome/mutter]
+dynamic-workspaces=false
+edge-tiling=false
+
+[org/gnome/mutter/keybindings]
+toggle-tiled-left=@as []
+toggle-tiled-right=@as []
+
+[org/gnome/nautilus/list-view]
+default-column-order=['name', 'size', 'type', 'owner', 'group', 'permissions', 'date_modified', 'date_accessed', 'date_created', 'recency', 'detailed_type']
+default-visible-columns=['name', 'size', 'date_modified']
+default-zoom-level='medium'
+
+[org/gnome/nautilus/preferences]
+default-folder-viewer='list-view'
+migrated-gtk-settings=true
+
+[org/gnome/settings-daemon/plugins/power]
+ambient-enabled=false
+sleep-inactive-ac-timeout=3600
+sleep-inactive-ac-type='nothing'
+
+[org/gnome/shell]
+enabled-extensions=['ding@rastersoft.com', 'ubuntu-dock@ubuntu.com', 'tiling-assistant@ubuntu.com', 'user-avatar-topmenu@basing.si', 'monitor@astraext.github.io', 'auto-accent-colour@Wartybix']
+favorite-apps=['org.gnome.Nautilus.desktop', 'brave-origin.desktop', 'onlyoffice-desktopeditors.desktop', 'vlc.desktop']
+welcome-dialog-last-shown-version='50.1'
+
+[org/gnome/shell/extensions/dash-to-dock]
+show-mounts=false
+
+[org/gnome/shell/extensions/ding]
+check-x11wayland=true
+icon-size='tiny'
+show-home=false
+
+[org/gnome/shell/extensions/tiling-assistant]
+focus-hint-color='rgb(211,70,21)'
+last-version-installed=54
+overridden-settings={'org.gnome.mutter.edge-tiling': <@mb nothing>, 'org.gnome.mutter.keybindings.toggle-tiled-left': <@mb nothing>, 'org.gnome.mutter.keybindings.toggle-tiled-right': <@mb nothing>}
+tiling-popup-all-workspace=true
+
+[org/gnome/shell/extensions/username-avatar]
+show-hostname=false
+show-topbar=true
+
+[org/gnome/system/location]
+enabled=true
+
+[org/gtk/gtk4/settings/file-chooser]
+show-hidden=false
+sort-directories-first=true
+
+[org/gtk/settings/file-chooser]
+clock-format='12h'
+DCONF_EOF
+
+echo "Done. Log out/in for changes to fully apply."
