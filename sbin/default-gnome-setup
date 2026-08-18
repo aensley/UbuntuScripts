@@ -30,13 +30,15 @@ for uuid in "${EXTENSIONS[@]}"; do
   curl -sfL "https://extensions.gnome.org${download_path}" -o "$zip"
 
   gnome-extensions install --force "$zip"
-  gnome-extensions enable "$uuid"
 
   rm -f "$zip"
 done
 
 echo "Setting default Gnome settings ..."
 
+# Extensions are enabled via the enabled-extensions key below rather than
+# `gnome-extensions enable`, since the running shell doesn't recognize a
+# just-installed extension until it restarts (log out/in on Wayland).
 dconf load / <<'DCONF_EOF'
 [org/gnome/desktop/app-folders]
 folder-children=['System', 'Utilities']
