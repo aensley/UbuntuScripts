@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+#
+# install-vscode - Install VS Code from the official apt repo.
+#
+set -euo pipefail
+
+echoheader "Preparing to Install VS Code"
+
+install-vscode-prepare
+
+echoheader "Installing VS Code"
+
+sudo apt install -y /tmp/vscode.deb

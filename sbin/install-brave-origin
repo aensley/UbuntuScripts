@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 #
-# install-brave-origin - Install Brave origin from the official apt repo
+# install-brave-origin - Install Brave Origin from the official apt repo.
 #
 set -euo pipefail
 
-echo "Installing Brave origin from the official apt repo ..."
+echoheader "Install Brave Origin"
+echo "Installing Brave Origin from the official apt repo..."
 
 curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
 
+echo
 echo "Setting default Brave settings for all users ..."
 
 sudo cp -a /usr/local/share/brave-origin/initial_preferences.json /opt/brave.com/brave-origin/initial_preferences

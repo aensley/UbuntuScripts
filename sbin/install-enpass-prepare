@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#
+# install-enpass-prepare - Prepare to install Enpass from the official apt repo.
+#                          Does not perform the actual installation.
+#
+set -euo pipefail
+
+sudo tee /etc/apt/sources.list.d/enpass.sources >/dev/null <<EOF
+Types: deb
+URIs: https://apt.enpass.io/
+Suites: stable
+Components: main
+Signed-By: /etc/apt/trusted.gpg.d/enpass.asc
+EOF
+
+wget -qO- https://apt.enpass.io/keys/enpass-linux.key | sudo tee /etc/apt/trusted.gpg.d/enpass.asc

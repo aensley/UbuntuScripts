@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# install-node-prepare - Prepare to install Node.js from the NodeSource apt repo.
+#                        Does not perform the actual installation.
+#
+set -euo pipefail
+
+if [ "$#" -ge 1 ]; then
+  NODE_VERSION="$1"
+else
+  NODE_VERSION=$(curl -fsS https://nodejs.org/dist/index.json | jq -r '[.[] | select(.lts != false)][0].version' | grep -oP '^v\K[0-9]+')
+fi
+
+echoheader "Preparing to Install Node.js"
+curl -fsS "https://deb.nodesource.com/setup_${NODE_VERSION}.x" | sudo bash -

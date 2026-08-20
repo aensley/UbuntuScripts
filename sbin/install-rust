@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#
+# install-rust - Install Rust from the official installer.
+#
+set -euo pipefail
+
+echoheader "Installing Rust"
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh

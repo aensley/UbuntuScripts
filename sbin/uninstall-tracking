@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Uninstall tracking packages.
+
+sudo apt purge -y -f activity-log-manager apport zeitgeist-datahub && sudo apt -y -f --purge autoremove

@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#
+# install-vscode-prepare - Prepare to installing VS Code.
+#                          Does not perform the actual installation.
+#
+set -euo pipefail
+
+echo "code code/add-microsoft-repo boolean true" | sudo debconf-set-selections
+
+wget -q -O /tmp/vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"

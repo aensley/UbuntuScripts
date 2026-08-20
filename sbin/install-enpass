@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#
+# install-enpass - Install Enpass from the official apt repo.
+#
+set -euo pipefail
+
+install-enpass-prepare
+
+sudo apt update && sudo apt install enpass

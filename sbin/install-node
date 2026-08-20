@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#
+# install-node - Install Node.js from the NodeSource apt repo.
+#
+set -euo pipefail
+
+install-node-prepare "$@"
+
+sudo apt update && sudo apt install nodejs -y

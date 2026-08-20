@@ -6,13 +6,31 @@ toRemove=''
 toInstall=''
 flatpakInstalled=''
 rustInstalled=''
-sensorsInstalled=''
+jdkVersion=''
 
 echoHugeHeader() {
   echo
   echo -e "====================  \033[32m\033[1m$1\033[m ==================== "
   echo
 }
+
+resolveJdkVersion() {
+  if [ -n "${jdkVersion}" ]; then
+    return
+  fi
+
+  for candidate in $(curl -fsS https://api.adoptium.net/v3/info/available_releases | jq -r '.available_lts_releases | reverse | .[]'); do
+    if apt-cache show "openjdk-${candidate}-jdk" &>/dev/null; then
+      jdkVersion="${candidate}"
+      return
+    fi
+  done
+}
+
+resolveJdkVersion
+if [ -z "${jdkVersion}" ]; then
+  jdkVersion="25"
+fi
 
 # ---------- Remove ----------
 
@@ -37,39 +55,30 @@ installApps() {
 }
 
 installBrave() {
-  echoHugeHeader "Installing Brave"
-  curl -fsS https://dl.brave.com/install.sh | FLAVOR=origin sh
+  echoheader "Installing Brave"
+  install-brave-origin
 }
 
 installChromium() {
   toInstall="${toInstall} chromium-browser"
 }
 
+installDocker() {
+  echoHugeHeader "Preparing to Install Docker"
+  install-docker-prepare
+  toInstall="${toInstall} docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
+}
+
 installEnpass() {
-  echoHugeHeader "Preparing to Install Enpass"
-  echo -e "Types: deb\nURIs: https://apt.enpass.io/\nSuites: stable\nComponents: main\nSigned-By: /etc/apt/trusted.gpg.d/enpass.asc" | sudo tee /etc/apt/sources.list.d/enpass.sources
-  wget -qO- https://apt.enpass.io/keys/enpass-linux.key | sudo tee /etc/apt/trusted.gpg.d/enpass.asc
+  echoheader "Preparing to Install Enpass"
+  install-enpass-prepare
   toInstall="${toInstall} enpass"
 }
 
-installDocker() {
-  echoHugeHeader "Preparing to Install Docker"
-  # Add Docker's official GPG key:
-  sudo install -m 0755 -d /etc/apt/keyrings
-  wget -qO- https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc
-  sudo chmod a+r /etc/apt/keyrings/docker.asc
-
-  # Add the repository to Apt sources:
-  sudo tee /etc/apt/sources.list.d/docker.sources <<EOF
-Types: deb
-URIs: https://download.docker.com/linux/ubuntu
-Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
-Components: stable
-Architectures: $(dpkg --print-architecture)
-Signed-By: /etc/apt/keyrings/docker.asc
-EOF
-
-  toInstall="${toInstall} docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
+installFirefox() {
+  echoheader "Preparing to Install Firefox"
+  install-firefox-prepare
+  toInstall="${toInstall} firefox"
 }
 
 installFlatpak() {
@@ -82,11 +91,13 @@ installGimp() {
 }
 
 installJdk() {
-  toInstall="${toInstall} openjdk-25-jdk"
+  resolveJdkVersion
+  toInstall="${toInstall} openjdk-${jdkVersion}-jdk"
 }
 
 installJre() {
-  toInstall="${toInstall} openjdk-25-jre"
+  resolveJdkVersion
+  toInstall="${toInstall} openjdk-${jdkVersion}-jre"
 }
 
 installKrita() {
@@ -95,7 +106,7 @@ installKrita() {
 
 installNodejs() {
   echoHugeHeader "Installing Node.js"
-  wget -qO- https://deb.nodesource.com/setup_24.x | sudo bash -
+  install-node-prepare
   toInstall="${toInstall} nodejs"
 }
 
@@ -107,20 +118,14 @@ installRust() {
   rustInstalled='1'
 }
 
-installSensors() {
-  toInstall="${toInstall} lm-sensors"
-  sensorsInstalled='1'
-}
-
 installVlc() {
   toInstall="${toInstall} vlc"
 }
 
 installVscode() {
   echoHugeHeader "Preparing to Install VSCode"
-  echo "code code/add-microsoft-repo boolean true" | sudo debconf-set-selections
-  wget -q -O vscode.deb "https://code.visualstudio.com/sha/download?build=stable&os=linux-deb-x64"
-  toInstall="${toInstall} ./vscode.deb"
+  install-vscode-prepare
+  toInstall="${toInstall} /tmp/vscode.deb"
 }
 
 # ---------- Main Thread ----------
@@ -147,15 +152,15 @@ installChoices=$(
     Chromium "Chromium" off \
     Docker "Docker" off \
     Enpass "Enpass" on \
+    Firefox "Firefox (Apt)" on \
     Flatpak "Flatpak" off \
     Gimp "GIMP" on \
-    Jdk "JDK 25" on \
-    Jre "JRE 25" off \
+    Jdk "JDK ${jdkVersion}" on \
+    Jre "JRE ${jdkVersion}" off \
     Krita "Krita" on \
     Nodejs "Node.js 24" on \
     Openssh-server "OpenSSH Server" on \
     Rust "Rust" on \
-    Sensors "Sensors" on \
     Vlc "VLC" on \
     Vscode "VS Code" on \
     3>&1 1>&2 2>&3
@@ -188,12 +193,5 @@ if [ -n "${flatpakInstalled}" ]; then
 fi
 
 if [ -n "${rustInstalled}" ]; then
-  echoHugeHeader "Installing Rust"
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-fi
-
-if [ -n "${sensorsInstalled}" ]; then
-  echoHugeHeader "Setting up Sensors"
-  sudo sensors-detect
-  sudo systemctl start kmod
+  install-rust
 fi
