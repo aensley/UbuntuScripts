@@ -4,8 +4,11 @@
 
 toRemove=''
 toInstall=''
+braveInstalled=''
 flatpakInstalled=''
+onlyofficeInstalled=''
 rustInstalled=''
+resiliosyncInstalled=''
 jdkVersion=''
 
 echoHugeHeader() {
@@ -54,9 +57,13 @@ installApps() {
   sudo apt update && sudo apt -y -f install ${toInstall}
 }
 
+installBackdrop() {
+  echoheader "Installing backdrop"
+  wget -qO- https://ensl.ee/backdrop | bash -
+}
+
 installBrave() {
-  echoheader "Installing Brave"
-  install-brave-origin
+  braveInstalled='1'
 }
 
 installChromium() {
@@ -64,7 +71,7 @@ installChromium() {
 }
 
 installDocker() {
-  echoHugeHeader "Preparing to Install Docker"
+  echoheader "Preparing to Install Docker"
   install-docker-prepare
   toInstall="${toInstall} docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin"
 }
@@ -91,12 +98,10 @@ installGimp() {
 }
 
 installJdk() {
-  resolveJdkVersion
   toInstall="${toInstall} openjdk-${jdkVersion}-jdk"
 }
 
 installJre() {
-  resolveJdkVersion
   toInstall="${toInstall} openjdk-${jdkVersion}-jre"
 }
 
@@ -105,9 +110,16 @@ installKrita() {
 }
 
 installNodejs() {
-  echoHugeHeader "Installing Node.js"
+  echoheader "Preparing to Install Node.js"
   install-node-prepare
   toInstall="${toInstall} nodejs"
+}
+
+installOnlyoffice() {
+  echoheader "Preparing to Install OnlyOffice"
+  install-onlyoffice-prepare
+  toInstall="${toInstall} onlyoffice-desktopeditors"
+  onlyofficeInstalled='1'
 }
 
 installOpenssh-server() {
@@ -118,12 +130,16 @@ installRust() {
   rustInstalled='1'
 }
 
+installResiliosync() {
+  resiliosyncInstalled='1'
+}
+
 installVlc() {
   toInstall="${toInstall} vlc"
 }
 
 installVscode() {
-  echoHugeHeader "Preparing to Install VSCode"
+  echoheader "Preparing to Install VS Code"
   install-vscode-prepare
   toInstall="${toInstall} /tmp/vscode.deb"
 }
@@ -148,6 +164,7 @@ removeChoices=$(
 
 installChoices=$(
   whiptail --title "Select Software to Install" --checklist "Select Software to Install" 23 50 17 \
+    Backdrop "Backdrop" on \
     Brave "Brave Origin" on \
     Chromium "Chromium" off \
     Docker "Docker" off \
@@ -155,12 +172,14 @@ installChoices=$(
     Firefox "Firefox (Apt)" on \
     Flatpak "Flatpak" off \
     Gimp "GIMP" on \
-    Jdk "JDK ${jdkVersion}" on \
+    Jdk "JDK ${jdkVersion}" off \
     Jre "JRE ${jdkVersion}" off \
     Krita "Krita" on \
-    Nodejs "Node.js 24" on \
+    Nodejs "Node.js LTS" off \
+    Onlyoffice "OnlyOffice" on \
     Openssh-server "OpenSSH Server" on \
-    Rust "Rust" on \
+    Resiliosync "Resilio Sync" on \
+    Rust "Rust" off \
     Vlc "VLC" on \
     Vscode "VS Code" on \
     3>&1 1>&2 2>&3
@@ -194,4 +213,17 @@ fi
 
 if [ -n "${rustInstalled}" ]; then
   install-rust
+fi
+
+if [ -n "${onlyofficeInstalled}" ]; then
+  install-onlyoffice-postinstall
+fi
+
+if [ -n "${resiliosyncInstalled}" ]; then
+  sudo install-resilio-sync && \
+    sudo install-resilio-sync-enable-auto-update
+fi
+
+if [ -n "${braveInstalled}" ]; then
+  install-brave-origin
 fi

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# install-onlyoffice-postinstall - Post installation steps for onlyoffice.
+#
+set -euo pipefail
+
+echo "Setting default OnlyOffice settings for all users ..."
+
+settings_xml='<Settings><disable-ai>1</disable-ai><disable-gpu>0</disable-gpu><force-scale>2</force-scale><system-scale>0</system-scale></Settings>'
+
+while IFS=: read -r user home; do
+  settings_dir="$home/.local/share/onlyoffice/desktopeditors/data"
+  sudo -u "$user" mkdir -p "$settings_dir"
+  echo "$settings_xml" | sudo -u "$user" tee "$settings_dir/settings.xml" >/dev/null
+done < <(getent passwd | awk -F: '$6 ~ /^\/home\// {print $1":"$6}')

@@ -8,14 +8,14 @@
 set -euo pipefail
 
 if [[ $EUID -ne 0 ]]; then
-    echo "ERROR: must run as root" >&2
-    exit 1
+  echo "ERROR: must run as root" >&2
+  exit 1
 fi
 
 UNIT_DIR="/etc/systemd/system"
 
-install -m 0644 -o root -g root "$(dirname "$0")/resilio-sync-update.service" "${UNIT_DIR}/resilio-sync-update.service"
-install -m 0644 -o root -g root "$(dirname "$0")/resilio-sync-update.timer" "${UNIT_DIR}/resilio-sync-update.timer"
+install -m 0644 -o root -g root "/usr/local/share/resilio-sync/resilio-sync-update.service" "${UNIT_DIR}/resilio-sync-update.service"
+install -m 0644 -o root -g root "/usr/local/share/resilio-sync/resilio-sync-update.timer" "${UNIT_DIR}/resilio-sync-update.timer"
 echo "installed ${UNIT_DIR}/resilio-sync-update.{service,timer}"
 
 systemctl daemon-reload

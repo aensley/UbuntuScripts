@@ -4,29 +4,8 @@
 #
 set -euo pipefail
 
-mkdir -p ~/.gnupg
-chmod 700 ~/.gnupg
-gpg --no-default-keyring --keyring gnupg-ring:/tmp/onlyoffice.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys CB2DE8E5
-chmod 644 /tmp/onlyoffice.gpg
-sudo chown root:root /tmp/onlyoffice.gpg
-sudo mv /tmp/onlyoffice.gpg /usr/share/keyrings/onlyoffice.gpg
-
-sudo tee /etc/apt/sources.list.d/onlyoffice.sources >/dev/null <<EOF
-Types: deb
-URIs: https://download.onlyoffice.com/repo/debian/
-Suites: squeeze
-Components: main
-Signed-By: /usr/share/keyrings/onlyoffice.gpg
-EOF
+install-onlyoffice-prepare
 
 sudo apt update && sudo apt install onlyoffice-desktopeditors
 
-echo "Setting default OnlyOffice settings for all users ..."
-
-settings_xml='<Settings><disable-ai>1</disable-ai><disable-gpu>0</disable-gpu><force-scale>2</force-scale><system-scale>0</system-scale></Settings>'
-
-while IFS=: read -r user home; do
-  settings_dir="$home/.local/share/onlyoffice/desktopeditors/data"
-  sudo -u "$user" mkdir -p "$settings_dir"
-  echo "$settings_xml" | sudo -u "$user" tee "$settings_dir/settings.xml" >/dev/null
-done < <(getent passwd | awk -F: '$6 ~ /^\/home\// {print $1":"$6}')
+install-onlyoffice-postinstall
