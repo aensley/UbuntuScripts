@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Update Ubuntu packages, Snaps, GRUB, Node.js packages, Ruby Gems, Python Packages, and Composer packages.
+# Update Ubuntu packages, Snaps, Flatpaks, GRUB, Scripts, Rust, Node.js packages, and Composer packages.
 
 echoheader "Upgrading System Packages"
 sudo apt update && sudo apt full-upgrade -y -f -u && sudo apt autoremove --purge && sudo apt clean

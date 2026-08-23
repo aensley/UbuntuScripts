@@ -3,8 +3,8 @@
 # Install/Upgrade MakeMKV
 
 # Usage:
-# installMakeMkv.sh
-# installMakeMkv.sh 1.10.4
+# install-makemkv
+# install-makemkv 1.10.4
 
 echoheader "Debin/Ubuntu MakeMKV Installer"
 
