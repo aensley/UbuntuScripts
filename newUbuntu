@@ -54,7 +54,7 @@ removeTracking() {
 
 installApps() {
   echoHugeHeader "Installing Apps"
-  sudo apt update && sudo apt -y -f install ${toInstall}
+  sudo apt update && sudo apt -y -f --allow-downgrades install ${toInstall}
 }
 
 installBackdrop() {
@@ -196,7 +196,7 @@ removeApps
 ## ----- Upgrade -----
 
 echoHugeHeader "Upgrading System"
-sudo apt update && sudo apt -y -f -u full-upgrade && sudo apt autoremove --purge && sudo apt clean
+sudo apt update && sudo apt -y -f -u --allow-downgrades full-upgrade && sudo apt autoremove --purge && sudo apt clean
 
 ## ----- Install -----
 
