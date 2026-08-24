@@ -69,7 +69,7 @@ icon-theme='Yaru-dark'
 show-battery-percentage=true
 
 [org/gnome/desktop/peripherals/touchpad]
-natural-scroll=true
+natural-scroll=false
 two-finger-scrolling-enabled=true
 
 [org/gnome/desktop/privacy]
