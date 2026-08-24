@@ -3,18 +3,39 @@
 # Install/Upgrade MakeMKV
 
 # Usage:
-# install-makemkv
-# install-makemkv 1.10.4
+# install-makemkv              # installs the latest version
+# install-makemkv 1.10.4       # installs a specific version
+
+set -euo pipefail
+
+VERSION_MARKER="/usr/local/share/makemkv/installed_version"
 
 echoheader "Debin/Ubuntu MakeMKV Installer"
 
-MAKEMKVVERSION=$1
+MAKEMKVVERSION="${1:-}"
+
+if [ -z "$MAKEMKVVERSION" ]; then
+  echoheader "Detecting latest MakeMKV version"
+  MAKEMKVVERSION=$(wget -qO- https://www.makemkv.com/download/ |
+    sed -e 's/<[^>]*>//g' |
+    grep -o 'MakeMKV [0-9]\+\.[0-9]\+\.[0-9]\+ for Windows' |
+    head -n1 |
+    awk '{print $2}') || true
+fi
+
 while [ -z "$MAKEMKVVERSION" ]; do
-  read -rp "Please enter the version of MakeMKV to install: " MAKEMKVVERSION
+  read -rp "Could not detect the latest version automatically. Please enter the version of MakeMKV to install: " MAKEMKVVERSION
 done
 
+if [ -r "$VERSION_MARKER" ] && [ "$(cat "$VERSION_MARKER")" = "$MAKEMKVVERSION" ]; then
+  echo "MakeMKV ${MAKEMKVVERSION} is already installed. Nothing to do."
+  exit 0
+fi
+
+echo "Installing MakeMKV ${MAKEMKVVERSION}"
+
 echoheader "Installing Pre-requisites"
-sudo apt install build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
+sudo apt install -y build-essential pkg-config libc6-dev libssl-dev libexpat1-dev libavcodec-dev libgl1-mesa-dev qtbase5-dev zlib1g-dev
 
 echoheader "Downloading installation files"
 mkdir -p /tmp/makemkv/ &&
@@ -39,3 +60,6 @@ cd /tmp/makemkv/ &&
 
 echoheader "Removing Installation Files"
 rm -rf /tmp/makemkv/
+
+sudo mkdir -p "$(dirname "$VERSION_MARKER")"
+echo "$MAKEMKVVERSION" | sudo tee "$VERSION_MARKER" >/dev/null
