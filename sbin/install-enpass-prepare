@@ -13,4 +13,4 @@ Components: main
 Signed-By: /etc/apt/trusted.gpg.d/enpass.asc
 EOF
 
-wget -qO- https://apt.enpass.io/keys/enpass-linux.key | sudo tee /etc/apt/trusted.gpg.d/enpass.asc
+wget -qO- https://apt.enpass.io/keys/enpass-linux.key | sudo tee /etc/apt/trusted.gpg.d/enpass.asc >/dev/null
