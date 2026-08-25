@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+#
+# install-unattended-upgrades - Install and configure unattended-upgrades so security
+#                               (and normal) package updates are applied automatically.
+#
+# Usage:
+# install-unattended-upgrades                  # all updates, no automatic reboot
+# install-unattended-upgrades --reboot         # also allow an automatic reboot at 02:00 when required
+# install-unattended-upgrades --security-only  # only apply security updates
+#
+set -euo pipefail
+
+autoReboot="false"
+# shellcheck disable=SC2016 # These are literal apt config placeholders, expanded by apt itself, not bash.
+allowedOrigins='"${distro_id}:${distro_codename}-security";
+        "${distro_id}:${distro_codename}-updates";'
+
+for arg in "$@"; do
+  case "$arg" in
+    --reboot)
+      autoReboot="true"
+      ;;
+    --security-only)
+      # shellcheck disable=SC2016 # Literal apt config placeholder, expanded by apt itself, not bash.
+      allowedOrigins='"${distro_id}:${distro_codename}-security";'
+      ;;
+    *)
+      echo "Unknown option: $arg" >&2
+      exit 1
+      ;;
+  esac
+done
+
+echoheader "Installing unattended-upgrades"
+sudo apt update && sudo apt install -y unattended-upgrades apt-listchanges
+
+echoheader "Enabling periodic apt updates"
+sudo tee /etc/apt/apt.conf.d/20auto-upgrades >/dev/null <<'EOF'
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "1";
+APT::Periodic::AutocleanInterval "7";
+APT::Periodic::Unattended-Upgrade "1";
+EOF
+
+echoheader "Configuring unattended-upgrades"
+sudo tee /etc/apt/apt.conf.d/51unattended-upgrades-local >/dev/null <<EOF
+Unattended-Upgrade::Allowed-Origins {
+    ${allowedOrigins}
+};
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "${autoReboot}";
+Unattended-Upgrade::Automatic-Reboot-Time "02:00";
+EOF
+
+echoheader "Enabling systemd timers"
+sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer
+
+echoheader "Running a dry run to verify the configuration"
+sudo unattended-upgrade --dry-run --debug
+
+echo
+echo "Success"
+echo
+echo "Automatic reboot: ${autoReboot}"
+echo
+echo "Check logs at:"
+echo "    /var/log/unattended-upgrades/unattended-upgrades.log"
+echo
+echo "Run a real dry run any time with:"
+echo "    sudo unattended-upgrade --dry-run --debug"
+echo
