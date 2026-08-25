@@ -6,9 +6,11 @@ toRemove=''
 toInstall=''
 braveInstalled=''
 flatpakInstalled=''
+makemkvInstalled=''
 onlyofficeInstalled=''
-rustInstalled=''
 resiliosyncInstalled=''
+rustInstalled=''
+unattendedUpgradesInstalled=''
 jdkVersion=''
 
 echoHugeHeader() {
@@ -115,6 +117,10 @@ installKrita() {
   toInstall="${toInstall} krita"
 }
 
+installMakemkv() {
+  makemkvInstalled='1'
+}
+
 installNodejs() {
   echoheader "Preparing to Install Node.js"
   install-node-prepare
@@ -138,6 +144,10 @@ installRust() {
 
 installResiliosync() {
   resiliosyncInstalled='1'
+}
+
+installUnattendedUpgrades() {
+  unattendedUpgradesInstalled='1'
 }
 
 installVlc() {
@@ -170,7 +180,7 @@ removeChoices=$(
 )
 
 installChoices=$(
-  whiptail --title "Select Software to Install" --checklist "Select Software to Install" 23 50 17 \
+  whiptail --title "Select Software to Install" --checklist "Select Software to Install" 25 50 19 \
     Backdrop "Backdrop" on \
     Brave "Brave Origin" on \
     Chromium "Chromium" off \
@@ -182,11 +192,13 @@ installChoices=$(
     Jdk "JDK ${jdkVersion}" off \
     Jre "JRE ${jdkVersion}" off \
     Krita "Krita" on \
+    Makemkv "MakeMKV" off \
     Nodejs "Node.js LTS" off \
     Onlyoffice "OnlyOffice" on \
     Openssh-server "OpenSSH Server" on \
     Resiliosync "Resilio Sync" on \
     Rust "Rust" off \
+    UnattendedUpgrades "Unattended Upgrades" on \
     Vlc "VLC" on \
     Vscode "VS Code" on \
     3>&1 1>&2 2>&3
@@ -213,13 +225,17 @@ done
 
 installApps
 
+if [ -n "${braveInstalled}" ]; then
+  install-brave-origin
+fi
+
 if [ -n "${flatpakInstalled}" ]; then
   echoHugeHeader "Setting up Flathub Repo"
   flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 fi
 
-if [ -n "${rustInstalled}" ]; then
-  install-rust
+if [ -n "${makemkvInstalled}" ]; then
+  install-makemkv
 fi
 
 if [ -n "${onlyofficeInstalled}" ]; then
@@ -231,6 +247,10 @@ if [ -n "${resiliosyncInstalled}" ]; then
     sudo install-resilio-sync-enable-auto-update
 fi
 
-if [ -n "${braveInstalled}" ]; then
-  install-brave-origin
+if [ -n "${rustInstalled}" ]; then
+  install-rust
+fi
+
+if [ -n "${unattendedUpgradesInstalled}" ]; then
+  install-unattended-upgrades
 fi
