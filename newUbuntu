@@ -39,6 +39,7 @@ fi
 
 removeApps() {
   echoHugeHeader "Removing Apps"
+  # shellcheck disable=SC2086 # toRemove is a space-separated list of package names; word splitting is intentional.
   sudo apt purge -y -f ${toRemove} && sudo apt -y -f --purge autoremove
 }
 
@@ -58,6 +59,7 @@ removeWelcomeTour() {
 
 installApps() {
   echoHugeHeader "Installing Apps"
+  # shellcheck disable=SC2086 # toInstall is a space-separated list of package names; word splitting is intentional.
   sudo apt update && sudo apt -y -f --allow-downgrades install ${toInstall}
 }
 
@@ -225,7 +227,7 @@ if [ -n "${onlyofficeInstalled}" ]; then
 fi
 
 if [ -n "${resiliosyncInstalled}" ]; then
-  sudo install-resilio-sync && \
+  sudo install-resilio-sync &&
     sudo install-resilio-sync-enable-auto-update
 fi
 

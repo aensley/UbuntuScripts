@@ -13,9 +13,9 @@
   "license": "MIT",
   "scripts": {
     "commit": "czg",
-    "test": "shellcheck sbin/*",
-    "lint": "prettier --check . && ~/go/bin/shfmt -d -i 2 -ci sbin/*",
-    "lint:fix": "prettier --write . && ~/go/bin/shfmt -w -i 2 -ci sbin/*",
+    "test": "shellcheck sbin/* newUbuntu",
+    "lint": "prettier --check . && ~/go/bin/shfmt -d -i 2 -ci sbin/* newUbuntu",
+    "lint:fix": "prettier --write . && ~/go/bin/shfmt -w -i 2 -ci sbin/* newUbuntu",
     "prepare": "npx simple-git-hooks",
     "update": "npx npm-check-updates -u && npm update"
   },
