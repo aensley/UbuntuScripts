@@ -58,7 +58,10 @@ echoheader "Enabling systemd timers"
 sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer
 
 echoheader "Running a dry run to verify the configuration"
-sudo unattended-upgrade --dry-run --debug
+dryRunOutput=$(sudo unattended-upgrade --dry-run --debug 2>&1) || {
+  echo "$dryRunOutput"
+  exit 1
+}
 
 echo
 echo "Success"
