@@ -74,6 +74,7 @@
     },
     "enable_window_closing_confirm": false,
     "has_seen_brave_welcome_page": true,
+    "has_seen_welcome_page": true,
     "location_bar_is_wide": true,
     "migrated_search_default_in_jp": true,
     "new_tab_page": {},
@@ -89,6 +90,9 @@
     "p3a_fp_allow_domain_count": 0,
     "p3a_fp_standard_domain_count": 0,
     "p3a_fp_strict_domain_count": 0
+  },
+  "browser": {
+    "has_seen_welcome_page": true
   },
   "default_search_provider_data": {
     "mirrored_template_url_data": {
