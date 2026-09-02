@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# Update DNS records for the current host
+
+set -euo pipefail
+
+sudo nano /etc/systemd/resolved.conf
+sudo systemctl restart systemd-resolved
