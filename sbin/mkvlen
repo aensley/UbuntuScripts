@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# mkvlen - list the duration of .mkv files in a directory
+# Default: sorted by duration, longest to shortest.
+
+set -euo pipefail
+
+usage() {
+  cat <<EOF
+Usage: ${0##*/} [-n] [-r] [-h] [DIRECTORY]
+
+List the duration of every .mkv file in DIRECTORY (default: current dir),
+followed by the total runtime.
+
+Options:
+  -n   Sort by file name (natural order, so "Ep2" comes before "Ep10")
+  -r   Reverse the sort order
+  -h   Show this help
+EOF
+}
+
+sort_by="duration"
+reverse=false
+
+while getopts ":nrh" opt; do
+  case "$opt" in
+    n) sort_by="name" ;;
+    r) reverse=true ;;
+    h)
+      usage
+      exit 0
+      ;;
+    \?)
+      echo "Unknown option: -$OPTARG" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+dir="${1:-.}"
+
+if ! command -v ffprobe >/dev/null 2>&1; then
+  echo "ffprobe not found. Install it with: sudo apt install ffmpeg" >&2
+  exit 1
+fi
+
+if [[ ! -d "$dir" ]]; then
+  echo "Not a directory: $dir" >&2
+  exit 1
+fi
+
+shopt -s nullglob nocaseglob
+files=("$dir"/*.mkv)
+shopt -u nocaseglob
+
+if ((${#files[@]} == 0)); then
+  echo "No .mkv files found in $dir" >&2
+  exit 1
+fi
+
+# Format whole seconds as H:MM:SS
+fmt() {
+  local s=$1
+  printf '%d:%02d:%02d' $((s / 3600)) $((s % 3600 / 60)) $((s % 60))
+}
+
+# Build "seconds<TAB>filename" lines
+lines=""
+for f in "${files[@]}"; do
+  d=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$f" 2>/dev/null || true)
+  if [[ -z "$d" || "$d" == "N/A" ]]; then
+    d=0
+  fi
+  secs=$(printf '%.0f' "$d")
+  lines+="${secs}"$'\t'"${f##*/}"$'\n'
+done
+
+# Choose sort order
+if [[ "$sort_by" == "name" ]]; then
+  sort_args=(-t $'\t' "-k2,2V")
+  $reverse && sort_args=(-t $'\t' "-k2,2Vr")
+else
+  sort_args=(-t $'\t' "-k1,1nr")
+  $reverse && sort_args=(-t $'\t' "-k1,1n")
+fi
+
+total=0
+while IFS=$'\t' read -r secs name; do
+  [[ -z "$name" ]] && continue
+  printf '%9s  %s\n' "$(fmt "$secs")" "$name"
+  total=$((total + secs))
+done < <(printf '%s' "$lines" | sort "${sort_args[@]}")
+
+printf -- '---------\n%9s  Total (%d files)\n' "$(fmt "$total")" "${#files[@]}"
